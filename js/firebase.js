@@ -63,17 +63,26 @@ export const INITIAL_ESSENTIAL_KIT = {
   images: [
     'images/product/essentials.png'
   ],
+  contents: [
+    'High-Foam Ceramic Car & Bike Wash Shampoo (500ml)',
+    'Hydrophobic SiO2 Ceramic Detailer Spray (250ml)',
+    'All-Surface Interior & Glass Detailer (250ml)',
+    '2x Premium Edgeless Microfiber Buffing Towels (400 GSM)',
+    'Dual-Action Detailing Wash Mitt / Applicator Pad'
+  ],
   specs: [
+    { label: 'Kit Contents', value: '5-Piece Complete Detailing Arsenal' },
     { label: 'Surface Compatibility', value: 'Paint, Glass, Chrome, Wheels, Plastics' },
     { label: 'Formulation', value: 'pH-Balanced, Ceramic-Infused Polymers' },
     { label: 'Durability', value: 'Up to 3 months hydrophobic protection' },
     { label: 'Origin', value: 'Engineered & Bottled for XORONIQ' }
   ],
   features: [
-    'Ultra-slick foam shampoo lifts grime without scratching',
-    'Ceramic detailer spray creates instant mirror shine and water beading',
-    'Streak-free interior cleaner safe on touchscreens, leather, and trim',
-    'Dual-pile edgeless microfiber buffing towels included'
+    'High-Foam Ceramic Wash Shampoo (500ml) lifts dirt safely without swirl marks',
+    'Hydrophobic SiO2 Ceramic Spray (250ml) provides 90-day extreme water beading',
+    'Cockpit Interior & Glass Detailer (250ml) streak-free with anti-static UV shield',
+    '2x Plush 400 GSM Edgeless Microfibers + Detailing Wash Mitt Applicator',
+    '100% safe on clear coats, PPF wraps, matte paint, chrome, and tinted glass'
   ],
   rating: 4.9,
   reviewsCount: 128,

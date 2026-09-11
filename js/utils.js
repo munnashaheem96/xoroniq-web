@@ -91,6 +91,34 @@ export function generateOrderId() {
 }
 
 /**
+ * Generate an automated structured Product SKU (e.g. XOR-KIT-4921)
+ */
+export function generateSku(category = 'KITS', name = '') {
+  const catPrefixes = {
+    'CAR CARE': 'CC',
+    'BIKE CARE': 'BC',
+    'KITS': 'KIT',
+    'ACCESSORIES': 'ACC'
+  };
+  const cleanCat = (category || 'KITS').toUpperCase();
+  const prefix = catPrefixes[cleanCat] || 'GEN';
+  const rand = Math.floor(1000 + Math.random() * 9000);
+  return `XOR-${prefix}-${rand}`;
+}
+
+/**
+ * Generate an automated Product ID / Slug
+ */
+export function generateProductId(name = '', category = 'KITS') {
+  if (name && name.trim()) {
+    const slug = slugify(name);
+    return slug.startsWith('xoroniq-') ? slug : `xoroniq-${slug}`;
+  }
+  const sku = generateSku(category, name);
+  return sku.toLowerCase();
+}
+
+/**
  * Debounce helper
  */
 export function debounce(func, wait) {

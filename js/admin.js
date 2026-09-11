@@ -13,7 +13,7 @@ import {
   getOrders, 
   INITIAL_ESSENTIAL_KIT 
 } from './firebase.js';
-import { formatCurrency, formatDate, calculateDiscount, showToast } from './utils.js';
+import { formatCurrency, formatDate, calculateDiscount, showToast, generateSku, generateProductId } from './utils.js';
 
 /**
  * Initialize Admin Overview Dashboard (admin/index.html)
@@ -291,8 +291,16 @@ export async function initAdminProductsPage() {
                     </div>
 
                     <div class="col-md-6">
-                      <label class="form-label font-heading text-black small fw-bold">SKU CODE</label>
-                      <input type="text" id="p-sku" class="form-control form-control-custom" placeholder="XOR-CER-002">
+                      <label class="form-label font-heading text-black small fw-bold d-flex justify-content-between">
+                        <span>SKU CODE *</span>
+                        <span class="text-accent small cursor-pointer" id="btn-auto-sku" style="cursor: pointer;" title="Auto-generate SKU"><i class="bi bi-magic me-1"></i> Auto-Generate</span>
+                      </label>
+                      <div class="input-group">
+                        <input type="text" id="p-sku" class="form-control form-control-custom" placeholder="e.g. XOR-KIT-4892" required>
+                        <button class="btn btn-x-outline-accent btn-sm px-3" type="button" id="btn-regen-sku" title="Generate New SKU">
+                          <i class="bi bi-arrow-repeat"></i>
+                        </button>
+                      </div>
                     </div>
                     <div class="col-md-3 d-flex align-items-center mt-4">
                       <div class="form-check form-switch">
@@ -367,10 +375,28 @@ export async function initAdminProductsPage() {
         });
       }
 
-      if (urlInput) {
-        urlInput.addEventListener('input', () => {
-          if (urlInput.value.trim()) {
-            previewImg.src = urlInput.value.trim();
+      // Setup Auto-SKU Generator buttons
+      const btnAutoSku = document.getElementById('btn-auto-sku');
+      const btnRegenSku = document.getElementById('btn-regen-sku');
+      const catSelect = document.getElementById('p-category');
+      const skuInput = document.getElementById('p-sku');
+      const nameInput = document.getElementById('p-name');
+
+      const triggerAutoSku = () => {
+        const cat = catSelect ? catSelect.value : 'KITS';
+        const name = nameInput ? nameInput.value : '';
+        if (skuInput) {
+          skuInput.value = generateSku(cat, name);
+          showToast(`Generated SKU: ${skuInput.value}`, 'info');
+        }
+      };
+
+      if (btnAutoSku) btnAutoSku.addEventListener('click', triggerAutoSku);
+      if (btnRegenSku) btnRegenSku.addEventListener('click', triggerAutoSku);
+      if (catSelect) {
+        catSelect.addEventListener('change', () => {
+          if (!editingProductId && skuInput && (!skuInput.value || skuInput.value.startsWith('XOR-'))) {
+            skuInput.value = generateSku(catSelect.value, nameInput ? nameInput.value : '');
           }
         });
       }
@@ -412,6 +438,7 @@ export async function initAdminProductsPage() {
       form.reset();
       activeInp.checked = true;
       featuredInp.checked = false;
+      skuInp.value = generateSku(catInp.value, nameInp.value);
       previewImg.src = 'images/product/essentials.png';
     }
 
@@ -444,7 +471,7 @@ export async function initAdminProductsPage() {
           price: parseFloat(priceInp.value) || 0,
           compareAtPrice: parseFloat(compPriceInp.value) || 0,
           stock: parseInt(stockInp.value) || 0,
-          sku: skuInp.value.trim() || `XOR-${Math.floor(1000 + Math.random() * 9000)}`,
+          sku: skuInp.value.trim() || generateSku(catInp.value, nameInp.value),
           active: activeInp.checked,
           featured: featuredInp.checked,
           shortDescription: shortDescInp.value.trim(),

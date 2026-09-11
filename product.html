@@ -253,11 +253,14 @@
 
       </div>
 
-      <!-- Lower Tabs: Description, Specs & Application -->
+      <!-- Lower Tabs: Kit Contents, Description, Specs & Application -->
       <div class="mt-5 pt-5 border-top border-secondary border-opacity-25">
         <ul class="nav nav-tabs mb-4" id="productTab" role="tablist">
           <li class="nav-item">
-            <button class="nav-link active" id="desc-tab" data-bs-toggle="tab" data-bs-target="#desc-tab-pane" type="button" role="tab">DETAILED FORMULATION</button>
+            <button class="nav-link active" id="contents-tab" data-bs-toggle="tab" data-bs-target="#contents-tab-pane" type="button" role="tab">WHAT'S IN THE BOX</button>
+          </li>
+          <li class="nav-item">
+            <button class="nav-link" id="desc-tab" data-bs-toggle="tab" data-bs-target="#desc-tab-pane" type="button" role="tab">DETAILED FORMULATION</button>
           </li>
           <li class="nav-item">
             <button class="nav-link" id="specs-tab" data-bs-toggle="tab" data-bs-target="#specs-tab-pane" type="button" role="tab">SPECIFICATIONS</button>
@@ -268,8 +271,54 @@
         </ul>
 
         <div class="tab-content" id="productTabContent">
+          <!-- Kit Contents Tab -->
+          <div class="tab-pane fade show active text-silver" id="contents-tab-pane" role="tabpanel">
+            <div class="row g-4" style="max-width: 900px;">
+              <div class="col-md-6">
+                <div class="p-3 bg-surface-custom rounded border border-secondary border-opacity-25 h-100">
+                  <div class="d-flex align-items-center gap-2 mb-2 text-black font-heading fw-bold">
+                    <i class="bi bi-droplet-fill text-accent"></i> 1. High-Foam Ceramic Shampoo (500ml)
+                  </div>
+                  <p class="small text-silver mb-0">High lubricity, pH-neutral formula designed to encapsulate abrasive dirt and wash paint scratch-free.</p>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="p-3 bg-surface-custom rounded border border-secondary border-opacity-25 h-100">
+                  <div class="d-flex align-items-center gap-2 mb-2 text-black font-heading fw-bold">
+                    <i class="bi bi-shield-fill-check text-accent"></i> 2. SiO2 Ceramic Detailer Spray (250ml)
+                  </div>
+                  <p class="small text-silver mb-0">Spray-on, wipe-off ceramic booster delivering 90+ days of hydrophobic self-cleaning shine and water beading.</p>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="p-3 bg-surface-custom rounded border border-secondary border-opacity-25 h-100">
+                  <div class="d-flex align-items-center gap-2 mb-2 text-black font-heading fw-bold">
+                    <i class="bi bi-magic text-accent"></i> 3. All-Surface Interior &amp; Glass Cleaner (250ml)
+                  </div>
+                  <p class="small text-silver mb-0">Zero streak clarity for tinted glass, infotainment touchscreens, leather seats, dashboard, and console plastics.</p>
+                </div>
+              </div>
+              <div class="col-md-6">
+                <div class="p-3 bg-surface-custom rounded border border-secondary border-opacity-25 h-100">
+                  <div class="d-flex align-items-center gap-2 mb-2 text-black font-heading fw-bold">
+                    <i class="bi bi-layers-fill text-accent"></i> 4. 2x Edgeless Microfiber Towels (400 GSM)
+                  </div>
+                  <p class="small text-silver mb-0">Ultra-thick 400 GSM dual-pile edgeless buffing microfibers that eliminate swirl marks and lint.</p>
+                </div>
+              </div>
+              <div class="col-12">
+                <div class="p-3 bg-surface-custom rounded border border-secondary border-opacity-25">
+                  <div class="d-flex align-items-center gap-2 mb-2 text-black font-heading fw-bold">
+                    <i class="bi bi-hand-index-thumb-fill text-accent"></i> 5. Dual-Action Detailing Wash Mitt / Applicator
+                  </div>
+                  <p class="small text-silver mb-0">Ergonomic scratch-free mitt with microfiber mesh for gentle paint agitation and effortless shampoo application.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <!-- Description -->
-          <div class="tab-pane fade show active text-silver" id="desc-tab-pane" role="tabpanel">
+          <div class="tab-pane fade text-silver" id="desc-tab-pane" role="tabpanel">
             <p id="product-detail-full-desc" class="fs-6 lh-lg" style="max-width: 900px;">
               The XORONIQ Essential Kit is our flagship detailing collection engineered for high-performance automotive and motorcycle enthusiasts. Formulated with laboratory-tested hydrophobic polymers and ultra-pure surfactants, this kit delivers extreme gloss, deep paint decontamination, streak-free glass clarity, and long-lasting protective shielding across all vehicle surfaces.
             </p>
@@ -348,6 +397,10 @@
       </div>
       <div class="footer-bottom">
         <div>© 2026 XORONIQ CAR CARE. All rights reserved.</div>
+        <div class="d-flex align-items-center gap-3">
+          <a href="https://instagram.com/xoroniq" class="btn-icon" target="_blank" aria-label="Instagram"><i class="bi bi-instagram"></i></a>
+          <a href="https://wa.me/919633962953" class="btn-icon" target="_blank" aria-label="WhatsApp"><i class="bi bi-whatsapp"></i></a>
+        </div>
       </div>
     </div>
   </footer>

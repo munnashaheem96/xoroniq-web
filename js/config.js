@@ -23,5 +23,7 @@ export const CONFIG = {
     EMAIL: 'xoroniq@gmail.com',
     PHONES: ['9633962953', '9544677531', '9207038205'],
     PHONE_FORMATTED: '+91 9633962953, +91 9544677531, +91 9207038205',
+    INSTAGRAM: 'https://instagram.com/xoroniq',
+    INSTAGRAM_HANDLE: '@xoroniq',
   },
 };
