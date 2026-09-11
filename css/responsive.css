@@ -1,0 +1,203 @@
+/* ==========================================================================
+   XORONIQ CAR CARE - RESPONSIVE DESIGN & ACCESSIBILITY
+   Breakpoints: 320px, 375px, 425px, 768px, 1024px, 1440px, 1920px
+   ========================================================================== */
+
+/* Large Desktop (1440px+) */
+@media (min-width: 1440px) {
+  .container-custom {
+    max-width: 1360px;
+    margin: 0 auto;
+    padding-left: 2rem;
+    padding-right: 2rem;
+  }
+}
+
+/* Standard Desktop / Laptop (1024px - 1439px) */
+@media (max-width: 1200px) {
+  .section-padding {
+    padding: 5.5rem 0;
+  }
+  
+  .hero-section {
+    padding-top: 6rem;
+  }
+}
+
+/* Tablets & Mobile Devices (Below 992px) */
+@media (max-width: 991.98px) {
+  /* Hide custom cursor on touch and tablet devices */
+  .custom-cursor-dot,
+  .custom-cursor-ring,
+  .custom-cursor-text {
+    display: none !important;
+  }
+
+  body, a, button, input {
+    cursor: auto !important;
+  }
+
+  .xoroniq-navbar {
+    background: rgba(6, 7, 9, 0.95);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid var(--x-border);
+    padding: 0.85rem 0;
+  }
+
+  .navbar-collapse {
+    background: var(--x-dark);
+    border: 1px solid var(--x-border);
+    border-radius: var(--x-radius);
+    padding: 1.5rem;
+    margin-top: 1rem;
+  }
+
+  .dual-category-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .category-panel {
+    min-height: 380px;
+    padding: 2rem;
+  }
+
+  .social-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .floating-product-img {
+    max-height: 360px;
+  }
+
+  .stat-card {
+    margin-bottom: 1rem;
+  }
+  
+  .cinematic-banner {
+    background-attachment: scroll; /* Disable fixed attachment for performance on mobile */
+  }
+}
+
+/* Small Tablets & Large Phones (Below 768px) */
+@media (max-width: 767.98px) {
+  .section-padding {
+    padding: 4rem 0;
+  }
+
+  .hero-section {
+    min-height: auto;
+    padding-top: 7rem;
+    padding-bottom: 3.5rem;
+    text-align: center;
+  }
+
+  .hero-scroll-indicator {
+    display: none;
+  }
+
+  .hero-btn-group {
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    gap: 0.75rem;
+  }
+
+  .hero-btn-group .btn {
+    width: 100%;
+  }
+
+  .filter-tabs {
+    justify-content: center;
+  }
+
+  .newsletter-card {
+    padding: 2.5rem 1.5rem;
+  }
+
+  .footer-bottom {
+    flex-direction: column;
+    text-align: center;
+    gap: 0.75rem;
+  }
+
+  .product-card-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .product-card-actions .btn {
+    width: 100%;
+  }
+
+  .stat-number {
+    font-size: 2.5rem;
+  }
+
+  .offcanvas-custom {
+    width: 100% !important;
+  }
+}
+
+/* Extra Small Phones (320px - 425px) */
+@media (max-width: 425px) {
+  h1, .h1 {
+    font-size: 2.2rem;
+  }
+
+  h2, .h2 {
+    font-size: 1.8rem;
+  }
+
+  .section-tag {
+    font-size: 0.68rem;
+  }
+
+  .filter-btn {
+    padding: 0.5rem 1rem;
+    font-size: 0.75rem;
+  }
+
+  .product-card-image-wrap {
+    min-height: 220px;
+    padding: 1.5rem 1rem;
+  }
+}
+
+/* Accessibility: Reduced Motion Preference */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+
+  .floating-product-img {
+    animation: none !important;
+  }
+
+  .marquee-content {
+    animation: none !important;
+    transform: none !important;
+  }
+
+  .reveal {
+    opacity: 1 !important;
+    transform: none !important;
+    filter: none !important;
+  }
+
+  .preloader-letter,
+  .preloader-subtext,
+  .hero-headline-line,
+  .hero-sub-reveal,
+  .hero-btn-reveal {
+    opacity: 1 !important;
+    transform: none !important;
+    filter: none !important;
+    animation: none !important;
+  }
+
+  #xoroniq-preloader {
+    display: none !important;
+  }
+}

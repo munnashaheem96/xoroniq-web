@@ -1,0 +1,20 @@
+{
+  "name": "xoroniq-car-care",
+  "private": true,
+  "version": "1.0.0",
+  "description": "XORONIQ Car Care - Premium Automotive Detailing Products E-Commerce Platform",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "bootstrap": "^5.3.3",
+    "bootstrap-icons": "^1.11.3",
+    "firebase": "^10.13.2"
+  },
+  "devDependencies": {
+    "vite": "^5.4.2"
+  }
+}
