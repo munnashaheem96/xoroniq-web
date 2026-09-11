@@ -99,9 +99,9 @@ export const INITIAL_PRO_KIT = {
   slug: 'xoroniq-pro-kit',
   category: 'CAR & BIKE CARE',
   categories: ['CAR CARE', 'BIKE CARE', 'KITS'],
-  price: 2499,
-  compareAtPrice: 2999,
-  discount: 17,
+  price: 0,
+  compareAtPrice: 0,
+  discount: 0,
   stock: 0,
   sku: 'XOR-KIT-PRO',
   featured: true,
@@ -111,7 +111,7 @@ export const INITIAL_PRO_KIT = {
   shortDescription: 'Advanced multi-stage detailing arsenal with ceramic coating, iron fallout remover, leather conditioner & pro accessories.',
   description: 'The XORONIQ Pro Kit is crafted for seasoned detailers and enthusiasts demanding professional-grade paint correction, intense hydrophobic gloss, and complete cockpit restoration. Features high-concentration iron fallout decontaminator, ultra-slick ceramic booster, and interior leather shield.',
   images: [
-    'images/product/essentials.png'
+    'images/product/anonymous-teaser.jpg'
   ],
   specs: [
     { label: 'Surface Compatibility', value: 'All Automotive & Motorcycle Surfaces' },
@@ -137,9 +137,9 @@ export const INITIAL_ULTRA_KIT = {
   slug: 'xoroniq-ultra-kit',
   category: 'CAR & BIKE CARE',
   categories: ['CAR CARE', 'BIKE CARE', 'KITS'],
-  price: 3999,
-  compareAtPrice: 4999,
-  discount: 20,
+  price: 0,
+  compareAtPrice: 0,
+  discount: 0,
   stock: 0,
   sku: 'XOR-KIT-ULTRA',
   featured: true,
@@ -149,7 +149,7 @@ export const INITIAL_ULTRA_KIT = {
   shortDescription: 'The ultimate flagship detailing vault with 9H ceramic graphene coat, dual-action buffer set, engine bay protectant & comprehensive accessory set.',
   description: 'The pinnacle of automotive perfection. The XORONIQ Ultra Kit delivers laboratory-grade graphene protection, high-durability hydrophobic ceramic barriers, deep leather nourishment, engine bay degreasing, and precision detailing brushes in a luxury collector case.',
   images: [
-    'images/product/essentials.png'
+    'images/product/anonymous-teaser.jpg'
   ],
   specs: [
     { label: 'Surface Compatibility', value: 'Full Vehicle Exterior, Interior & Engine Bay' },

@@ -55,16 +55,21 @@ function renderProductDetails(product) {
   const skuEl = document.getElementById('product-detail-sku');
   if (skuEl) skuEl.textContent = `SKU: ${product.sku || 'XOR-001'}`;
 
+  // Stock & Launch Status
+  const isSoon = Boolean(product.isComingSoon || product.launchStatus === 'LAUNCHING SOON');
+
   // Price & Discount
   const priceCurrent = document.getElementById('product-detail-price');
-  if (priceCurrent) priceCurrent.textContent = formatCurrency(product.price);
+  if (priceCurrent) {
+    priceCurrent.textContent = isSoon ? '₹XXXX' : formatCurrency(product.price);
+  }
 
   const priceCompare = document.getElementById('product-detail-compare-price');
   const discountBadge = document.getElementById('product-detail-discount-badge');
   const discount = product.discount || calculateDiscount(product.price, product.compareAtPrice);
 
   if (priceCompare) {
-    if (product.compareAtPrice > product.price) {
+    if (!isSoon && product.compareAtPrice > product.price) {
       priceCompare.textContent = formatCurrency(product.compareAtPrice);
       priceCompare.style.display = 'inline';
     } else {
@@ -73,7 +78,7 @@ function renderProductDetails(product) {
   }
 
   if (discountBadge) {
-    if (discount > 0) {
+    if (!isSoon && discount > 0) {
       discountBadge.textContent = `${discount}% OFF`;
       discountBadge.style.display = 'inline-block';
     } else {
@@ -81,8 +86,6 @@ function renderProductDetails(product) {
     }
   }
 
-  // Stock & Launch Status
-  const isSoon = Boolean(product.isComingSoon || product.launchStatus === 'LAUNCHING SOON');
   const stockEl = document.getElementById('product-detail-stock');
   if (stockEl) {
     if (isSoon) {
@@ -102,9 +105,13 @@ function renderProductDetails(product) {
   if (fullDescEl) fullDescEl.textContent = product.description;
 
   // Gallery
-  const images = (Array.isArray(product.images) && product.images.length > 0) 
+  let images = (Array.isArray(product.images) && product.images.length > 0) 
     ? product.images 
     : ['images/product/essentials.png'];
+
+  if (isSoon && (images.length === 0 || images[0] === 'images/product/essentials.png')) {
+    images = ['images/product/anonymous-teaser.jpg'];
+  }
 
   const mainImageEl = document.getElementById('product-detail-main-img');
   const thumbsContainer = document.getElementById('product-detail-thumbs');

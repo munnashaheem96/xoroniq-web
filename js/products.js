@@ -113,9 +113,13 @@ function renderFilteredProducts(containerId, options = {}) {
     const delay = ((index % 6) + 1) * 0.1;
     const isSoon = Boolean(product.isComingSoon || product.launchStatus === 'LAUNCHING SOON');
     const discount = product.discount || calculateDiscount(product.price, product.compareAtPrice);
-    const imgUrl = (Array.isArray(product.images) && product.images.length > 0) 
+    let imgUrl = (Array.isArray(product.images) && product.images.length > 0) 
       ? product.images[0] 
       : (product.image || 'images/product/essentials.png');
+    
+    if (isSoon && (!imgUrl || imgUrl === 'images/product/essentials.png')) {
+      imgUrl = 'images/product/anonymous-teaser.jpg';
+    }
     const categoryBadge = formatCategoryBadge(product);
 
     return `
@@ -127,14 +131,17 @@ function renderFilteredProducts(containerId, options = {}) {
               : (discount > 0 ? `<span class="product-badge-discount">${discount}% OFF</span>` : '')
             }
             <span class="product-badge-category">${categoryBadge}</span>
-            <img src="${imgUrl}" alt="${product.name}" class="product-card-image" loading="lazy" onerror="this.src='images/product/essentials.png'">
+            <img src="${imgUrl}" alt="${product.name}" class="product-card-image" loading="lazy" onerror="this.src='images/product/anonymous-teaser.jpg'">
           </div>
           <div class="product-card-body">
             <a href="product.html?id=${product.id}" class="product-card-title">${product.name}</a>
             <p class="product-card-desc">${product.shortDescription || product.description || 'Professional detailing formulation.'}</p>
             <div class="product-card-pricing">
-              <span class="price-current">${formatCurrency(product.price)}</span>
-              ${product.compareAtPrice > product.price ? `<span class="price-compare">${formatCurrency(product.compareAtPrice)}</span>` : ''}
+              ${isSoon 
+                ? `<span class="price-current font-mono fw-bold letter-spacing-wide text-dark">₹XXXX</span>`
+                : `<span class="price-current">${formatCurrency(product.price)}</span>`
+              }
+              ${!isSoon && product.compareAtPrice > product.price ? `<span class="price-compare">${formatCurrency(product.compareAtPrice)}</span>` : ''}
               ${isSoon ? `<span class="badge bg-warning bg-opacity-25 text-warning small ms-2">UPCOMING</span>` : ''}
             </div>
             <div class="product-card-actions">
@@ -259,37 +266,53 @@ export async function openQuickViewModal(productId) {
     return;
   }
 
-  const imgUrl = (Array.isArray(product.images) && product.images.length > 0) 
+  const isSoon = Boolean(product.isComingSoon || product.launchStatus === 'LAUNCHING SOON');
+  let imgUrl = (Array.isArray(product.images) && product.images.length > 0) 
     ? product.images[0] 
     : (product.image || 'images/product/essentials.png');
+  if (isSoon && (!imgUrl || imgUrl === 'images/product/essentials.png')) {
+    imgUrl = 'images/product/anonymous-teaser.jpg';
+  }
   const discount = product.discount || calculateDiscount(product.price, product.compareAtPrice);
 
   contentWrap.innerHTML = `
     <div class="row align-items-center g-4">
       <div class="col-md-6 text-center">
         <div class="p-4 bg-surface-custom rounded-3 border border-secondary border-opacity-25 position-relative">
-          ${discount > 0 ? `<span class="product-badge-discount position-absolute top-0 start-0 m-3">${discount}% OFF</span>` : ''}
-          <img src="${imgUrl}" alt="${product.name}" class="img-fluid" style="max-height: 280px; object-fit: contain;">
+          ${isSoon 
+            ? `<span class="product-badge-discount bg-dark text-white border border-secondary border-opacity-50 position-absolute top-0 start-0 m-3"><i class="bi bi-stars text-warning me-1"></i> LAUNCHING SOON</span>`
+            : (discount > 0 ? `<span class="product-badge-discount position-absolute top-0 start-0 m-3">${discount}% OFF</span>` : '')
+          }
+          <img src="${imgUrl}" alt="${product.name}" class="img-fluid" style="max-height: 280px; object-fit: contain;" onerror="this.src='images/product/anonymous-teaser.jpg'">
         </div>
       </div>
       <div class="col-md-6">
-        <span class="section-tag mb-2">${product.category || 'CAR CARE'}</span>
+        <span class="section-tag mb-2">${product.category || 'CAR & BIKE CARE'}</span>
         <h3 class="font-heading text-black fw-bold mb-2">${product.name}</h3>
         <div class="d-flex align-items-baseline gap-3 mb-3">
-          <span class="price-current fs-3 text-black">${formatCurrency(product.price)}</span>
-          ${product.compareAtPrice > product.price ? `<span class="price-compare">${formatCurrency(product.compareAtPrice)}</span>` : ''}
+          ${isSoon 
+            ? `<span class="price-current fs-3 text-black font-mono fw-bold">₹XXXX</span>`
+            : `<span class="price-current fs-3 text-black">${formatCurrency(product.price)}</span>`
+          }
+          ${!isSoon && product.compareAtPrice > product.price ? `<span class="price-compare">${formatCurrency(product.compareAtPrice)}</span>` : ''}
+          ${isSoon ? `<span class="badge bg-warning bg-opacity-25 text-warning small ms-2">UPCOMING</span>` : ''}
         </div>
         <p class="text-body small mb-4">${product.description || product.shortDescription || 'Engineered for exceptional surface protection and gloss.'}</p>
         
         <div class="d-flex gap-3 align-items-center mb-4">
-          <div class="quantity-control">
-            <button class="quantity-btn" id="modal-qty-minus">-</button>
-            <span class="quantity-value" id="modal-qty-val">1</span>
-            <button class="quantity-btn" id="modal-qty-plus">+</button>
-          </div>
-          <button class="btn btn-x-primary flex-grow-1" id="modal-add-cart-btn">
-            <i class="bi bi-cart-plus me-1"></i> ADD TO CART
-          </button>
+          ${isSoon 
+            ? `<button class="btn btn-x-primary flex-grow-1" id="modal-notify-btn">
+                <i class="bi bi-bell-fill me-1"></i> NOTIFY ME ON LAUNCH
+               </button>`
+            : `<div class="quantity-control">
+                <button class="quantity-btn" id="modal-qty-minus">-</button>
+                <span class="quantity-value" id="modal-qty-val">1</span>
+                <button class="quantity-btn" id="modal-qty-plus">+</button>
+               </div>
+               <button class="btn btn-x-primary flex-grow-1" id="modal-add-cart-btn">
+                <i class="bi bi-cart-plus me-1"></i> ADD TO CART
+               </button>`
+          }
         </div>
         
         <a href="product.html?id=${product.id}" class="text-accent small font-heading fw-bold letter-spacing-wide text-decoration-none d-inline-flex align-items-center gap-1">
@@ -298,6 +321,19 @@ export async function openQuickViewModal(productId) {
       </div>
     </div>
   `;
+
+  if (isSoon) {
+    const notifyBtn = document.getElementById('modal-notify-btn');
+    if (notifyBtn) {
+      notifyBtn.addEventListener('click', () => {
+        import('./utils.js').then(({ showToast }) => {
+          showToast(`Thank you! We will notify you when ${product.name} launches.`, 'info');
+          bsModal.hide();
+        });
+      });
+    }
+    return;
+  }
 
   let qty = 1;
   const qtyValEl = document.getElementById('modal-qty-val');

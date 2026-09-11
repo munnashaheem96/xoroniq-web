@@ -157,20 +157,24 @@ function performLiveSearch() {
   }
 
   searchResultsEl.innerHTML = results.map(product => {
-    const imgUrl = (Array.isArray(product.images) && product.images.length > 0) 
+    const isSoon = Boolean(product.isComingSoon || product.launchStatus === 'LAUNCHING SOON');
+    let imgUrl = (Array.isArray(product.images) && product.images.length > 0) 
       ? product.images[0] 
       : (product.image || 'images/product/essentials.png');
+    if (isSoon && (!imgUrl || imgUrl === 'images/product/essentials.png')) {
+      imgUrl = 'images/product/anonymous-teaser.jpg';
+    }
     const categoryBadge = formatCategoryBadge(product);
 
     return `
       <a href="product.html?id=${product.id}" class="search-result-item">
-        <img src="${imgUrl}" alt="${product.name}" class="rounded p-1 bg-light border" style="width: 50px; height: 50px; object-fit: contain;">
+        <img src="${imgUrl}" alt="${product.name}" class="rounded p-1 bg-light border" style="width: 50px; height: 50px; object-fit: contain;" onerror="this.src='images/product/anonymous-teaser.jpg'">
         <div class="flex-grow-1">
           <div class="font-heading fw-bold text-black small">${product.name}</div>
           <div class="text-muted-custom small font-mono">${categoryBadge} • SKU: ${product.sku || 'N/A'}</div>
         </div>
-        <div class="font-mono text-accent fw-bold">
-          ${formatCurrency(product.price)}
+        <div class="font-mono ${isSoon ? 'text-dark' : 'text-accent'} fw-bold">
+          ${isSoon ? '₹XXXX' : formatCurrency(product.price)}
         </div>
       </a>
     `;
