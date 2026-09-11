@@ -13,7 +13,17 @@ import {
   getOrders, 
   INITIAL_ESSENTIAL_KIT 
 } from './firebase.js';
-import { formatCurrency, formatDate, calculateDiscount, showToast, generateSku, generateProductId } from './utils.js';
+import { 
+  formatCurrency, 
+  formatDate, 
+  calculateDiscount, 
+  showToast, 
+  generateSku, 
+  generateProductId,
+  getProductCategories,
+  formatCategoryBadge,
+  matchesCategory
+} from './utils.js';
 
 /**
  * Initialize Admin Overview Dashboard (admin/index.html)
