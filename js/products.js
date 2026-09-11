@@ -6,6 +6,7 @@
 import { getProducts, getProductById } from './firebase.js';
 import { formatCurrency, calculateDiscount, matchesCategory, formatCategoryBadge, getProductCategories } from './utils.js';
 import { addToCart } from './cart.js';
+import { initScrollReveals } from './animations.js';
 
 let cachedProducts = [];
 let currentCategory = 'ALL';
@@ -172,6 +173,20 @@ function renderFilteredProducts(containerId, options = {}) {
       openQuickViewModal(id);
     });
   });
+
+  // Observe and trigger reveal animations for dynamic cards
+  initScrollReveals(container);
+  
+  // Guarantee smooth reveal visibility
+  if (typeof window !== 'undefined') {
+    requestAnimationFrame(() => {
+      container.querySelectorAll('.reveal').forEach((el, idx) => {
+        setTimeout(() => {
+          el.classList.add('is-revealed');
+        }, (idx + 1) * 50);
+      });
+    });
+  }
 }
 
 /**

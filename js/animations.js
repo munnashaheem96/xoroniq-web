@@ -147,8 +147,8 @@ export function initNavbarScroll() {
 /**
  * Scroll Reveal Engine with IntersectionObserver
  */
-export function initScrollReveals() {
-  const revealElements = document.querySelectorAll('.reveal');
+export function initScrollReveals(root = document) {
+  const revealElements = root.querySelectorAll('.reveal:not(.is-revealed)');
   if (!revealElements.length) return;
 
   const observer = new IntersectionObserver((entries, obs) => {
@@ -160,8 +160,8 @@ export function initScrollReveals() {
     });
   }, {
     root: null,
-    threshold: 0.12,
-    rootMargin: '0px 0px -50px 0px'
+    threshold: 0.05,
+    rootMargin: '0px 0px 50px 0px'
   });
 
   revealElements.forEach(el => observer.observe(el));
