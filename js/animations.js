@@ -5,27 +5,35 @@
 
 /**
  * Initialize Preloader
+ * Mobile: dismisses fast (1.2s after DOM ready) — no waiting for large images
+ * Desktop: waits for window.load then adds 1.4s brand animation
  */
 export function initPreloader() {
   const preloader = document.getElementById('xoroniq-preloader');
   if (!preloader) return;
 
-  // Let letters and progress fill animate, then smoothly dismiss
-  window.addEventListener('load', () => {
-    setTimeout(() => {
-      preloader.classList.add('loaded');
-      setTimeout(() => {
-        preloader.remove();
-      }, 800);
-    }, 1400);
-  });
+  const isMobile = window.innerWidth < 768 || 'ontouchstart' in window || navigator.maxTouchPoints > 0;
 
-  // Fallback safety dismissal
-  setTimeout(() => {
-    if (preloader && !preloader.classList.contains('loaded')) {
-      preloader.classList.add('loaded');
-    }
-  }, 3500);
+  const dismiss = () => {
+    if (preloader.classList.contains('loaded')) return;
+    preloader.classList.add('loaded');
+    setTimeout(() => {
+      if (preloader.parentNode) preloader.remove();
+    }, 600);
+  };
+
+  if (isMobile) {
+    // On mobile: dismiss quickly after DOM is ready — don't wait on slow image loads
+    setTimeout(dismiss, 1200);
+  } else {
+    // Desktop: wait for full page load then show brand animation
+    window.addEventListener('load', () => {
+      setTimeout(dismiss, 1400);
+    });
+  }
+
+  // Absolute fallback: dismiss no matter what after 3.5s
+  setTimeout(dismiss, 3500);
 }
 
 /**
@@ -145,12 +153,25 @@ export function initNavbarScroll() {
 }
 
 /**
- * Scroll Reveal Engine with IntersectionObserver
+ * Scroll Reveal Engine
+ * Mobile: skips IntersectionObserver and instantly reveals all elements
+ * Desktop: uses smooth IntersectionObserver-based reveal
  */
 export function initScrollReveals(root = document) {
   const revealElements = root.querySelectorAll('.reveal:not(.is-revealed)');
   if (!revealElements.length) return;
 
+  const isMobile = window.innerWidth < 768 || 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+
+  if (isMobile) {
+    // On mobile, instantly reveal all elements with a short stagger
+    revealElements.forEach((el, idx) => {
+      setTimeout(() => el.classList.add('is-revealed'), idx * 30);
+    });
+    return;
+  }
+
+  // Desktop: IntersectionObserver-based reveal
   const observer = new IntersectionObserver((entries, obs) => {
     entries.forEach(entry => {
       if (entry.isIntersecting) {

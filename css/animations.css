@@ -335,3 +335,47 @@ body.cursor-explore .custom-cursor-dot {
   transform: translateX(6px);
   box-shadow: var(--x-shadow-card);
 }
+
+/* ==========================================================================
+   MOBILE ANIMATION OVERRIDES
+   On touch / small screens, bypass all opacity-0 entrance animations
+   so content is NEVER invisible due to slow Firestore / slow images
+   ========================================================================== */
+@media (max-width: 767.98px), (hover: none) and (pointer: coarse) {
+  /* Scroll reveal elements – visible immediately */
+  .reveal,
+  .reveal-fade-up,
+  .reveal-fade-down,
+  .reveal-fade-left,
+  .reveal-fade-right,
+  .reveal-zoom-in,
+  .reveal-blur-in {
+    opacity: 1 !important;
+    transform: none !important;
+    filter: none !important;
+    transition: none !important;
+    will-change: auto !important;
+  }
+
+  /* Hero text – no delay / blur entrance on mobile */
+  .hero-headline-line {
+    opacity: 1 !important;
+    filter: none !important;
+    transform: none !important;
+    animation: none !important;
+  }
+
+  .hero-sub-reveal,
+  .hero-btn-reveal {
+    opacity: 1 !important;
+    transform: none !important;
+    animation: none !important;
+  }
+
+  /* Stagger delays irrelevant on mobile */
+  .stagger-1, .stagger-2, .stagger-3,
+  .stagger-4, .stagger-5, .stagger-6 {
+    transition-delay: 0ms !important;
+  }
+}
+
