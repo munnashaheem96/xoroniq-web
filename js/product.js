@@ -4,7 +4,7 @@
 // ==========================================================================
 
 import { getProductById, getProductBySlug, INITIAL_ESSENTIAL_KIT } from './firebase.js';
-import { formatCurrency, calculateDiscount, showToast } from './utils.js';
+import { formatCurrency, calculateDiscount, showToast, formatCategoryBadge } from './utils.js';
 import { addToCart } from './cart.js';
 
 /**
@@ -46,7 +46,7 @@ function renderProductDetails(product) {
   if (breadcrumbEl) breadcrumbEl.textContent = product.name;
 
   const categoryTag = document.getElementById('product-detail-category');
-  if (categoryTag) categoryTag.textContent = product.category || 'CAR CARE';
+  if (categoryTag) categoryTag.textContent = formatCategoryBadge(product);
 
   // Title & SKU
   const titleEl = document.getElementById('product-detail-title');

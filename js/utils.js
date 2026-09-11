@@ -91,17 +91,92 @@ export function generateOrderId() {
 }
 
 /**
- * Generate an automated structured Product SKU (e.g. XOR-KIT-4921)
+ * Extract normalized array of categories from a product
+ * @param {Object} product 
+ * @returns {string[]}
  */
-export function generateSku(category = 'KITS', name = '') {
-  const catPrefixes = {
-    'CAR CARE': 'CC',
-    'BIKE CARE': 'BC',
-    'KITS': 'KIT',
-    'ACCESSORIES': 'ACC'
-  };
-  const cleanCat = (category || 'KITS').toUpperCase();
-  const prefix = catPrefixes[cleanCat] || 'GEN';
+export function getProductCategories(product) {
+  if (!product) return ['CAR CARE'];
+  if (Array.isArray(product.categories) && product.categories.length > 0) {
+    return product.categories.map(c => String(c).trim().toUpperCase()).filter(Boolean);
+  }
+  if (typeof product.category === 'string' && product.category.trim()) {
+    const parts = product.category.split(/[,&/]+/).map(s => s.trim().toUpperCase()).filter(Boolean);
+    if (parts.length > 0) return parts;
+    return [product.category.trim().toUpperCase()];
+  }
+  return ['CAR CARE'];
+}
+
+/**
+ * Format category badge string for display on cards & pages
+ * @param {Object} product 
+ * @returns {string}
+ */
+export function formatCategoryBadge(product) {
+  const cats = getProductCategories(product);
+  const hasCar = cats.some(c => c.includes('CAR'));
+  const hasBike = cats.some(c => c.includes('BIKE'));
+  const hasKit = cats.some(c => c.includes('KIT'));
+  const hasAcc = cats.some(c => c.includes('ACCESSOR'));
+  
+  if (hasCar && hasBike) return 'CAR & BIKE';
+  if (hasKit) return 'KITS';
+  if (hasCar) return 'CAR CARE';
+  if (hasBike) return 'BIKE CARE';
+  if (hasAcc) return 'ACCESSORIES';
+  return cats[0] || 'CAR CARE';
+}
+
+/**
+ * Check if a product matches a target category filter
+ * @param {Object} product 
+ * @param {string} targetCategory 
+ * @returns {boolean}
+ */
+export function matchesCategory(product, targetCategory) {
+  if (!targetCategory || targetCategory === 'ALL') return true;
+  const target = targetCategory.toUpperCase().trim();
+  const cats = getProductCategories(product);
+  
+  return cats.some(c => {
+    if (c === target) return true;
+    if (target.includes('CAR') && c.includes('CAR')) return true;
+    if (target.includes('BIKE') && c.includes('BIKE')) return true;
+    if (target.includes('KIT') && c.includes('KIT')) return true;
+    if (target.includes('ACCESSOR') && c.includes('ACCESSOR')) return true;
+    if (c.includes(target) || target.includes(c)) return true;
+    return false;
+  });
+}
+
+/**
+ * Generate an automated structured Product SKU (e.g. XOR-KIT-4921, XOR-CB-3891)
+ */
+export function generateSku(categories = 'KITS', name = '') {
+  const catArray = Array.isArray(categories) 
+    ? categories 
+    : (typeof categories === 'string' ? categories.split(/[,&/]+/) : ['KITS']);
+  
+  const cleanCats = catArray.map(c => String(c).trim().toUpperCase());
+  const hasCar = cleanCats.some(c => c.includes('CAR'));
+  const hasBike = cleanCats.some(c => c.includes('BIKE'));
+  const hasKit = cleanCats.some(c => c.includes('KIT'));
+  const hasAcc = cleanCats.some(c => c.includes('ACCESSOR'));
+
+  let prefix = 'GEN';
+  if (hasKit) {
+    prefix = 'KIT';
+  } else if (hasCar && hasBike) {
+    prefix = 'CB';
+  } else if (hasCar) {
+    prefix = 'CC';
+  } else if (hasBike) {
+    prefix = 'BC';
+  } else if (hasAcc) {
+    prefix = 'ACC';
+  }
+
   const rand = Math.floor(1000 + Math.random() * 9000);
   return `XOR-${prefix}-${rand}`;
 }

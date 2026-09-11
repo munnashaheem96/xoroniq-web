@@ -4,7 +4,7 @@
 // ==========================================================================
 
 import { getProducts } from './firebase.js';
-import { formatCurrency, debounce } from './utils.js';
+import { formatCurrency, debounce, formatCategoryBadge } from './utils.js';
 
 let searchOverlayEl = null;
 let searchInputEl = null;
@@ -135,9 +135,10 @@ function performLiveSearch() {
   const results = searchProductsCache.filter(p => {
     const nameMatch = (p.name || '').toLowerCase().includes(term);
     const catMatch = (p.category || '').toLowerCase().includes(term);
+    const catsArrayMatch = Array.isArray(p.categories) && p.categories.some(c => c.toLowerCase().includes(term));
     const skuMatch = (p.sku || '').toLowerCase().includes(term);
     const descMatch = (p.description || '').toLowerCase().includes(term);
-    return nameMatch || catMatch || skuMatch || descMatch;
+    return nameMatch || catMatch || catsArrayMatch || skuMatch || descMatch;
   });
 
   if (countLabel) {
@@ -149,7 +150,7 @@ function performLiveSearch() {
       <div class="text-center py-5">
         <i class="bi bi-slash-circle display-5 text-muted-custom mb-3"></i>
         <h5 class="text-black font-heading fw-bold">NO RESULTS FOR "${term.toUpperCase()}"</h5>
-        <p class="text-muted-custom small">Try searching for "Kit", "Car Care", "Ceramic", or "Foam".</p>
+        <p class="text-muted-custom small">Try searching for "Kit", "Car Care", "Bike Care", or "Ceramic".</p>
       </div>
     `;
     return;
@@ -159,13 +160,14 @@ function performLiveSearch() {
     const imgUrl = (Array.isArray(product.images) && product.images.length > 0) 
       ? product.images[0] 
       : (product.image || 'images/product/essentials.png');
+    const categoryBadge = formatCategoryBadge(product);
 
     return `
       <a href="product.html?id=${product.id}" class="search-result-item">
         <img src="${imgUrl}" alt="${product.name}" class="rounded p-1 bg-light border" style="width: 50px; height: 50px; object-fit: contain;">
         <div class="flex-grow-1">
           <div class="font-heading fw-bold text-black small">${product.name}</div>
-          <div class="text-muted-custom small font-mono">${product.category || 'CAR CARE'} • SKU: ${product.sku || 'N/A'}</div>
+          <div class="text-muted-custom small font-mono">${categoryBadge} • SKU: ${product.sku || 'N/A'}</div>
         </div>
         <div class="font-mono text-accent fw-bold">
           ${formatCurrency(product.price)}
@@ -174,3 +176,4 @@ function performLiveSearch() {
     `;
   }).join('');
 }
+

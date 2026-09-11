@@ -4,7 +4,7 @@
 // ==========================================================================
 
 import { getProducts, getProductById } from './firebase.js';
-import { formatCurrency, calculateDiscount } from './utils.js';
+import { formatCurrency, calculateDiscount, matchesCategory, formatCategoryBadge, getProductCategories } from './utils.js';
 import { addToCart } from './cart.js';
 
 let cachedProducts = [];
@@ -55,9 +55,9 @@ function renderFilteredProducts(containerId, options = {}) {
 
   let filtered = [...cachedProducts];
 
-  // Apply Category Filter
+  // Apply Multi-Category Filter (Matches products applicable to Car, Bike, or Both)
   if (currentCategory !== 'ALL') {
-    filtered = filtered.filter(p => (p.category || '').toUpperCase() === currentCategory.toUpperCase());
+    filtered = filtered.filter(p => matchesCategory(p, currentCategory));
   }
 
   // Apply Sorting
@@ -115,6 +115,7 @@ function renderFilteredProducts(containerId, options = {}) {
     const imgUrl = (Array.isArray(product.images) && product.images.length > 0) 
       ? product.images[0] 
       : (product.image || 'images/product/essentials.png');
+    const categoryBadge = formatCategoryBadge(product);
 
     return `
       <div class="col-lg-4 col-md-6 mb-4 reveal reveal-fade-up" style="animation-delay: ${delay}s; transition-delay: ${delay}s;">
@@ -124,7 +125,7 @@ function renderFilteredProducts(containerId, options = {}) {
               ? `<span class="product-badge-discount bg-dark text-white border border-secondary border-opacity-50"><i class="bi bi-stars text-warning me-1"></i> LAUNCHING SOON</span>` 
               : (discount > 0 ? `<span class="product-badge-discount">${discount}% OFF</span>` : '')
             }
-            <span class="product-badge-category">${product.category || 'CAR CARE'}</span>
+            <span class="product-badge-category">${categoryBadge}</span>
             <img src="${imgUrl}" alt="${product.name}" class="product-card-image" loading="lazy" onerror="this.src='images/product/essentials.png'">
           </div>
           <div class="product-card-body">

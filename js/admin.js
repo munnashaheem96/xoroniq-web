@@ -70,8 +70,12 @@ export async function initAdminDashboard() {
   }
 }
 
+let cachedProducts = [];
+
 /**
- * Initialize Admin Product Management Page (admin/products.html)
+ * ==========================================================================
+ * PRODUCTS MANAGEMENT PAGE LOGIC
+ * ==========================================================================
  */
 export async function initAdminProductsPage() {
   const tableBody = document.getElementById('admin-products-table-body');
@@ -108,18 +112,19 @@ export async function initAdminProductsPage() {
     const cat = categoryFilter ? categoryFilter.value : 'ALL';
 
     if (cat !== 'ALL') {
-      filtered = filtered.filter(p => (p.category || '').toUpperCase() === cat.toUpperCase());
+      filtered = filtered.filter(p => matchesCategory(p, cat));
     }
 
     if (searchTerm) {
       filtered = filtered.filter(p => 
         (p.name || '').toLowerCase().includes(searchTerm) ||
         (p.sku || '').toLowerCase().includes(searchTerm) ||
-        (p.category || '').toLowerCase().includes(searchTerm)
+        (p.category || '').toLowerCase().includes(searchTerm) ||
+        (Array.isArray(p.categories) && p.categories.some(c => c.toLowerCase().includes(searchTerm)))
       );
     }
 
-    if (totalCountBadge) totalCountBadge.textContent = `${filtered.length} Products`;
+    if (totalCountBadge) totalCountBadge.textContent = `${filtered.length} Product${filtered.length === 1 ? '' : 's'}`;
 
     if (filtered.length === 0) {
       tableBody.innerHTML = `
@@ -135,6 +140,8 @@ export async function initAdminProductsPage() {
     tableBody.innerHTML = filtered.map(p => {
       const img = (Array.isArray(p.images) && p.images.length > 0) ? p.images[0] : (p.image || 'images/product/essentials.png');
       const discount = p.discount || calculateDiscount(p.price, p.compareAtPrice);
+      const cats = getProductCategories(p);
+      const catBadges = cats.map(c => `<span class="badge bg-white border text-dark me-1">${c}</span>`).join('');
 
       return `
         <tr data-id="${p.id}">
@@ -147,7 +154,7 @@ export async function initAdminProductsPage() {
               </div>
             </div>
           </td>
-          <td><span class="badge bg-white border text-dark">${p.category || 'CAR CARE'}</span></td>
+          <td>${catBadges}</td>
           <td class="font-mono text-black fw-bold">
             ${formatCurrency(p.price)}
             ${p.compareAtPrice > p.price ? `<div class="text-muted-custom text-decoration-line-through small">${formatCurrency(p.compareAtPrice)}</div>` : ''}
@@ -263,18 +270,31 @@ export async function initAdminProductsPage() {
               <div class="modal-body p-4">
                 <form id="admin-product-form">
                   <div class="row g-3">
-                    <div class="col-md-8">
+                    <div class="col-md-12">
                       <label class="form-label font-heading text-black small fw-bold">PRODUCT NAME *</label>
                       <input type="text" id="p-name" class="form-control form-control-custom" required placeholder="e.g. XORONIQ Ultra Ceramic Spray">
                     </div>
-                    <div class="col-md-4">
-                      <label class="form-label font-heading text-black small fw-bold">CATEGORY *</label>
-                      <select id="p-category" class="form-select form-control-custom">
-                        <option value="CAR CARE">CAR CARE</option>
-                        <option value="BIKE CARE">BIKE CARE</option>
-                        <option value="KITS">KITS</option>
-                        <option value="ACCESSORIES">ACCESSORIES</option>
-                      </select>
+
+                    <div class="col-12">
+                      <label class="form-label font-heading text-black small fw-bold">APPLICABLE CATEGORIES (SELECT ALL THAT APPLY) *</label>
+                      <div class="d-flex flex-wrap gap-3 p-3 bg-surface-custom border border-secondary border-opacity-25 rounded-3" id="p-categories-container">
+                        <div class="form-check m-0">
+                          <input class="form-check-input form-check-input-custom p-category-cb" type="checkbox" id="cat-car" value="CAR CARE">
+                          <label class="form-check-label small fw-bold text-black ms-2 cursor-pointer" for="cat-car"><i class="bi bi-car-front text-accent me-1"></i> Car Care</label>
+                        </div>
+                        <div class="form-check m-0">
+                          <input class="form-check-input form-check-input-custom p-category-cb" type="checkbox" id="cat-bike" value="BIKE CARE">
+                          <label class="form-check-label small fw-bold text-black ms-2 cursor-pointer" for="cat-bike"><i class="bi bi-bicycle text-accent me-1"></i> Bike Care</label>
+                        </div>
+                        <div class="form-check m-0">
+                          <input class="form-check-input form-check-input-custom p-category-cb" type="checkbox" id="cat-kits" value="KITS">
+                          <label class="form-check-label small fw-bold text-black ms-2 cursor-pointer" for="cat-kits"><i class="bi bi-box-seam text-accent me-1"></i> Detailing Kits</label>
+                        </div>
+                        <div class="form-check m-0">
+                          <input class="form-check-input form-check-input-custom p-category-cb" type="checkbox" id="cat-accessories" value="ACCESSORIES">
+                          <label class="form-check-label small fw-bold text-black ms-2 cursor-pointer" for="cat-accessories"><i class="bi bi-tools text-accent me-1"></i> Accessories & Towels</label>
+                        </div>
+                      </div>
                     </div>
 
                     <div class="col-md-4">
@@ -296,7 +316,7 @@ export async function initAdminProductsPage() {
                         <span class="text-accent small cursor-pointer" id="btn-auto-sku" style="cursor: pointer;" title="Auto-generate SKU"><i class="bi bi-magic me-1"></i> Auto-Generate</span>
                       </label>
                       <div class="input-group">
-                        <input type="text" id="p-sku" class="form-control form-control-custom" placeholder="e.g. XOR-KIT-4892" required>
+                        <input type="text" id="p-sku" class="form-control form-control-custom" placeholder="e.g. XOR-CB-4892" required>
                         <button class="btn btn-x-outline-accent btn-sm px-3" type="button" id="btn-regen-sku" title="Generate New SKU">
                           <i class="bi bi-arrow-repeat"></i>
                         </button>
@@ -359,7 +379,6 @@ export async function initAdminProductsPage() {
 
       // Setup Image Preview handlers
       const fileInput = document.getElementById('p-image-file');
-      const urlInput = document.getElementById('p-image-url');
       const previewImg = document.getElementById('p-image-preview');
 
       if (fileInput) {
@@ -375,37 +394,42 @@ export async function initAdminProductsPage() {
         });
       }
 
+      // Helper to get checked categories
+      const getSelectedCategories = () => {
+        const checked = Array.from(document.querySelectorAll('.p-category-cb:checked')).map(cb => cb.value);
+        return checked.length > 0 ? checked : ['CAR CARE'];
+      };
+
       // Setup Auto-SKU Generator buttons
       const btnAutoSku = document.getElementById('btn-auto-sku');
       const btnRegenSku = document.getElementById('btn-regen-sku');
-      const catSelect = document.getElementById('p-category');
       const skuInput = document.getElementById('p-sku');
       const nameInput = document.getElementById('p-name');
 
       const triggerAutoSku = () => {
-        const cat = catSelect ? catSelect.value : 'KITS';
+        const cats = getSelectedCategories();
         const name = nameInput ? nameInput.value : '';
         if (skuInput) {
-          skuInput.value = generateSku(cat, name);
+          skuInput.value = generateSku(cats, name);
           showToast(`Generated SKU: ${skuInput.value}`, 'info');
         }
       };
 
       if (btnAutoSku) btnAutoSku.addEventListener('click', triggerAutoSku);
       if (btnRegenSku) btnRegenSku.addEventListener('click', triggerAutoSku);
-      if (catSelect) {
-        catSelect.addEventListener('change', () => {
+
+      document.querySelectorAll('.p-category-cb').forEach(cb => {
+        cb.addEventListener('change', () => {
           if (!editingProductId && skuInput && (!skuInput.value || skuInput.value.startsWith('XOR-'))) {
-            skuInput.value = generateSku(catSelect.value, nameInput ? nameInput.value : '');
+            skuInput.value = generateSku(getSelectedCategories(), nameInput ? nameInput.value : '');
           }
         });
-      }
+      });
     }
 
     const modalTitle = document.getElementById('product-modal-title');
     const form = document.getElementById('admin-product-form');
     const nameInp = document.getElementById('p-name');
-    const catInp = document.getElementById('p-category');
     const priceInp = document.getElementById('p-price');
     const compPriceInp = document.getElementById('p-compare-price');
     const stockInp = document.getElementById('p-stock');
@@ -417,10 +441,26 @@ export async function initAdminProductsPage() {
     const urlInp = document.getElementById('p-image-url');
     const previewImg = document.getElementById('p-image-preview');
 
+    const getSelectedCategories = () => {
+      const checked = Array.from(document.querySelectorAll('.p-category-cb:checked')).map(cb => cb.value);
+      return checked.length > 0 ? checked : ['CAR CARE'];
+    };
+
     if (product) {
       modalTitle.textContent = `EDIT: ${product.name.toUpperCase()}`;
       nameInp.value = product.name || '';
-      catInp.value = product.category || 'CAR CARE';
+      
+      const selectedCats = getProductCategories(product);
+      document.querySelectorAll('.p-category-cb').forEach(cb => {
+        cb.checked = selectedCats.some(c => 
+          c === cb.value || 
+          (c.includes('CAR') && cb.value === 'CAR CARE') || 
+          (c.includes('BIKE') && cb.value === 'BIKE CARE') || 
+          (c.includes('KIT') && cb.value === 'KITS') || 
+          (c.includes('ACC') && cb.value === 'ACCESSORIES')
+        );
+      });
+
       priceInp.value = product.price || '';
       compPriceInp.value = product.compareAtPrice || '';
       stockInp.value = product.stock !== undefined ? product.stock : 50;
@@ -438,7 +478,13 @@ export async function initAdminProductsPage() {
       form.reset();
       activeInp.checked = true;
       featuredInp.checked = false;
-      skuInp.value = generateSku(catInp.value, nameInp.value);
+      
+      // Default to both Car and Bike care
+      document.querySelectorAll('.p-category-cb').forEach(cb => {
+        cb.checked = cb.value === 'CAR CARE' || cb.value === 'BIKE CARE';
+      });
+
+      skuInp.value = generateSku(getSelectedCategories(), nameInp.value);
       previewImg.src = 'images/product/essentials.png';
     }
 
@@ -465,13 +511,17 @@ export async function initAdminProductsPage() {
           }
         }
 
+        const selectedCategories = getSelectedCategories();
+        const primaryCategory = formatCategoryBadge({ categories: selectedCategories });
+
         const productPayload = {
           name: nameInp.value.trim(),
-          category: catInp.value,
+          category: primaryCategory,
+          categories: selectedCategories,
           price: parseFloat(priceInp.value) || 0,
           compareAtPrice: parseFloat(compPriceInp.value) || 0,
           stock: parseInt(stockInp.value) || 0,
-          sku: skuInp.value.trim() || generateSku(catInp.value, nameInp.value),
+          sku: skuInp.value.trim() || generateSku(selectedCategories, nameInp.value),
           active: activeInp.checked,
           featured: featuredInp.checked,
           shortDescription: shortDescInp.value.trim(),

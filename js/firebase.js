@@ -34,7 +34,7 @@ import {
 } from 'firebase/storage';
 
 import { CONFIG } from './config.js';
-import { slugify, calculateDiscount } from './utils.js';
+import { slugify, calculateDiscount, matchesCategory, getProductCategories, formatCategoryBadge } from './utils.js';
 
 // Initialize Firebase App
 const app = !getApps().length ? initializeApp(CONFIG.FIREBASE) : getApps()[0];
@@ -43,12 +43,13 @@ export const auth = getAuth(app);
 export const db = getFirestore(app);
 export const storage = getStorage(app);
 
-// Initial Products Catalog
+// Initial Products Catalog (Multi-category: Suitable for both Car and Bike)
 export const INITIAL_ESSENTIAL_KIT = {
   id: 'xoroniq-essential-kit',
   name: 'XORONIQ Essential Kit',
   slug: 'xoroniq-essential-kit',
-  category: 'KITS',
+  category: 'CAR & BIKE CARE',
+  categories: ['CAR CARE', 'BIKE CARE', 'KITS'],
   price: 1199,
   compareAtPrice: 1499,
   discount: 20,
@@ -64,25 +65,27 @@ export const INITIAL_ESSENTIAL_KIT = {
     'images/product/essentials.png'
   ],
   contents: [
-    'High-Foam Ceramic Car & Bike Wash Shampoo (500ml)',
-    'Hydrophobic SiO2 Ceramic Detailer Spray (250ml)',
-    'All-Surface Interior & Glass Detailer (250ml)',
-    '2x Premium Edgeless Microfiber Buffing Towels (400 GSM)',
-    'Dual-Action Detailing Wash Mitt / Applicator Pad'
+    'Xoroniq Ultra Foam Car Shampoo 473 ml',
+    'Microfiber 350 GSM Buffing Towel',
+    'Microfiber 1200 GSM Heavy Plush Drying Towel',
+    'Premium Detailing Wash Mitt',
+    'Manual Pump Foam Sprayer',
+    'Precision Detailing Brushes (2x Pack)'
   ],
   specs: [
-    { label: 'Kit Contents', value: '5-Piece Complete Detailing Arsenal' },
+    { label: 'Kit Contents', value: '6-Piece Complete Detailing Arsenal' },
     { label: 'Surface Compatibility', value: 'Paint, Glass, Chrome, Wheels, Plastics' },
-    { label: 'Formulation', value: 'pH-Balanced, Ceramic-Infused Polymers' },
-    { label: 'Durability', value: 'Up to 3 months hydrophobic protection' },
+    { label: 'Formulation', value: 'pH-Balanced, High Lubricity Ultra Foam' },
+    { label: 'Durability', value: 'Extreme Scratch-Free Foam Protection' },
     { label: 'Origin', value: 'Engineered & Bottled for XORONIQ' }
   ],
   features: [
-    'High-Foam Ceramic Wash Shampoo (500ml) lifts dirt safely without swirl marks',
-    'Hydrophobic SiO2 Ceramic Spray (250ml) provides 90-day extreme water beading',
-    'Cockpit Interior & Glass Detailer (250ml) streak-free with anti-static UV shield',
-    '2x Plush 400 GSM Edgeless Microfibers + Detailing Wash Mitt Applicator',
-    '100% safe on clear coats, PPF wraps, matte paint, chrome, and tinted glass'
+    'Xoroniq Ultra Foam Car Shampoo (473 ml) lifts heavy road dirt with extreme lubricity',
+    'Heavy-Duty Manual Foam Sprayer for thick, clinging snow foam without pressure washer',
+    'Ultra-soft scratch-free wash mitt for gentle paint contact',
+    'Microfiber 350 GSM for effortless wipe-down and buffing',
+    'Microfiber 1200 GSM heavy plush towel for streak-free paint drying',
+    '2x Precision Detailing Brushes for emblems, lug nuts, and interior AC vents'
   ],
   rating: 4.9,
   reviewsCount: 128,
@@ -94,7 +97,8 @@ export const INITIAL_PRO_KIT = {
   id: 'xoroniq-pro-kit',
   name: 'XORONIQ Pro Kit',
   slug: 'xoroniq-pro-kit',
-  category: 'KITS',
+  category: 'CAR & BIKE CARE',
+  categories: ['CAR CARE', 'BIKE CARE', 'KITS'],
   price: 2499,
   compareAtPrice: 2999,
   discount: 17,
@@ -131,7 +135,8 @@ export const INITIAL_ULTRA_KIT = {
   id: 'xoroniq-ultra-kit',
   name: 'XORONIQ Ultra Kit',
   slug: 'xoroniq-ultra-kit',
-  category: 'KITS',
+  category: 'CAR & BIKE CARE',
+  categories: ['CAR CARE', 'BIKE CARE', 'KITS'],
   price: 3999,
   compareAtPrice: 4999,
   discount: 20,
@@ -179,26 +184,21 @@ export async function getProducts({ activeOnly = true, category = null } = {}) {
     let q;
     
     if (activeOnly) {
-      if (category && category !== 'ALL') {
-        q = query(productsRef, where('active', '==', true), where('category', '==', category));
-      } else {
-        q = query(productsRef, where('active', '==', true));
-      }
+      q = query(productsRef, where('active', '==', true));
     } else {
-      if (category && category !== 'ALL') {
-        q = query(productsRef, where('category', '==', category));
-      } else {
-        q = query(productsRef);
-      }
+      q = query(productsRef);
     }
 
     const snapshot = await getDocs(q);
     
     if (!snapshot.empty) {
-      const list = [];
+      let list = [];
       snapshot.forEach(docSnap => {
         list.push({ id: docSnap.id, ...docSnap.data() });
       });
+      if (category && category !== 'ALL') {
+        list = list.filter(p => matchesCategory(p, category));
+      }
       return list;
     }
   } catch (error) {
@@ -207,7 +207,7 @@ export async function getProducts({ activeOnly = true, category = null } = {}) {
 
   // If Firestore is empty or uninitialized, return the initial Catalog
   if (category && category !== 'ALL') {
-    return INITIAL_CATALOG.filter(p => p.category.toUpperCase() === category.toUpperCase());
+    return INITIAL_CATALOG.filter(p => matchesCategory(p, category));
   }
   return INITIAL_CATALOG;
 }
@@ -260,11 +260,14 @@ export async function addProduct(productData) {
   try {
     const slug = productData.slug || slugify(productData.name);
     const discount = calculateDiscount(productData.price, productData.compareAtPrice);
+    const categories = getProductCategories(productData);
+    const category = productData.category || formatCategoryBadge(productData);
     
     const docData = {
       name: productData.name,
       slug: slug,
-      category: productData.category || 'CAR CARE',
+      category: category,
+      categories: categories,
       price: Number(productData.price) || 0,
       compareAtPrice: Number(productData.compareAtPrice) || 0,
       discount: discount,
@@ -302,6 +305,10 @@ export async function updateProduct(id, productData) {
       ...productData,
       updatedAt: serverTimestamp()
     };
+    if (productData.categories || productData.category) {
+      updatePayload.categories = getProductCategories(productData);
+      updatePayload.category = productData.category || formatCategoryBadge(productData);
+    }
     if (productData.price !== undefined || productData.compareAtPrice !== undefined) {
       updatePayload.discount = calculateDiscount(productData.price, productData.compareAtPrice);
     }
