@@ -2,4 +2,4 @@ User-agent: *
 Allow: /
 Disallow: /admin/
 
-Sitemap: https://xoroniq.com/sitemap.xml
+Sitemap: https://xoroniq.store/sitemap.xml

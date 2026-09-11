@@ -1,33 +1,48 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
   <url>
-    <loc>https://xoroniq.com/</loc>
+    <loc>https://xoroniq.store/</loc>
     <lastmod>2026-09-11</lastmod>
+    <changefreq>daily</changefreq>
     <priority>1.0</priority>
+    <image:image>
+      <image:loc>https://xoroniq.store/images/product/essentials.png</image:loc>
+      <image:title>XORONIQ Essential Kit Car &amp; Bike Detailing</image:title>
+    </image:image>
   </url>
   <url>
-    <loc>https://xoroniq.com/shop.html</loc>
+    <loc>https://xoroniq.store/shop.html</loc>
     <lastmod>2026-09-11</lastmod>
+    <changefreq>daily</changefreq>
     <priority>0.9</priority>
   </url>
   <url>
-    <loc>https://xoroniq.com/product.html</loc>
+    <loc>https://xoroniq.store/product.html</loc>
     <lastmod>2026-09-11</lastmod>
+    <changefreq>weekly</changefreq>
     <priority>0.8</priority>
+    <image:image>
+      <image:loc>https://xoroniq.store/images/product/essentials.png</image:loc>
+      <image:title>XORONIQ Essential Kit Complete Formula</image:title>
+    </image:image>
   </url>
   <url>
-    <loc>https://xoroniq.com/about.html</loc>
+    <loc>https://xoroniq.store/about.html</loc>
     <lastmod>2026-09-11</lastmod>
+    <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://xoroniq.com/contact.html</loc>
+    <loc>https://xoroniq.store/contact.html</loc>
     <lastmod>2026-09-11</lastmod>
+    <changefreq>monthly</changefreq>
     <priority>0.7</priority>
   </url>
   <url>
-    <loc>https://xoroniq.com/tracking.html</loc>
+    <loc>https://xoroniq.store/tracking.html</loc>
     <lastmod>2026-09-11</lastmod>
+    <changefreq>monthly</changefreq>
     <priority>0.6</priority>
   </url>
 </urlset>
