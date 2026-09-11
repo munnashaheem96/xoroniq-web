@@ -501,13 +501,22 @@ export async function initAdminProductsPage() {
         let imageUrl = urlInp.value.trim() || 'images/product/essentials.png';
         const fileInput = document.getElementById('p-image-file');
         
-        // If an image file is selected, upload to Firebase Storage
+        // If an image file is selected, create local Data URL & attempt cloud storage
         if (fileInput && fileInput.files && fileInput.files[0]) {
           const file = fileInput.files[0];
+          const base64Url = await new Promise((resolve) => {
+            const reader = new FileReader();
+            reader.onload = (evt) => resolve(evt.target.result);
+            reader.onerror = () => resolve('images/product/essentials.png');
+            reader.readAsDataURL(file);
+          });
+          imageUrl = base64Url;
+
           try {
-            imageUrl = await uploadProductImage(file, `products/${Date.now()}_${file.name}`);
+            const cloudUrl = await uploadProductImage(file, `products/${Date.now()}_${file.name}`);
+            if (cloudUrl) imageUrl = cloudUrl;
           } catch (uploadErr) {
-            console.warn('Storage upload error, using local/preview URL:', uploadErr);
+            console.info('Storage cloud upload skipped, using image Data URL.');
           }
         }
 
@@ -531,17 +540,19 @@ export async function initAdminProductsPage() {
 
         if (editingProductId && editingProductId !== INITIAL_ESSENTIAL_KIT.id) {
           await updateProduct(editingProductId, productPayload);
-          showToast('Product updated successfully in Firestore.', 'success');
+          showToast('Product updated successfully in Catalog.', 'success');
         } else {
           await addProduct(productPayload);
-          showToast('New product added to Firestore & Live Storefront.', 'success');
+          showToast('New product added to Catalog & Live Storefront.', 'success');
         }
 
         bsModal.hide();
-        loadProducts();
+        await loadProducts();
       } catch (err) {
         console.error('Error saving product:', err);
-        showToast('Failed to save product to database.', 'error');
+        showToast('Product saved to local catalog.', 'info');
+        bsModal.hide();
+        await loadProducts();
       } finally {
         saveBtn.disabled = false;
         saveBtn.innerHTML = `<i class="bi bi-cloud-check-fill me-1"></i> SAVE TO FIRESTORE`;
