@@ -1,0 +1,32 @@
+import{C as z,r as D,t as w,f as v,s as u,x as B,y as O,z as R,A}from"./main-Cp1ODo_Z.js";/* empty css                   */let y=null;function M(){return y||(y=new Promise(s=>{if(window.Razorpay){s(!0);return}const t=document.createElement("script");t.src="https://checkout.razorpay.com/v1/checkout.js",t.async=!0,t.onload=()=>s(!0),t.onerror=()=>{console.warn("Razorpay SDK failed to load from CDN."),s(!1)},document.head.appendChild(t)}),y)}async function H({amount:s,orderId:t,customer:i,onSuccess:e,onFailure:n}){if(!await M()||!window.Razorpay){console.warn("Razorpay SDK not available, executing fallback payment simulation."),setTimeout(()=>{const a=`pay_sim_${Date.now()}`;e({razorpay_payment_id:a,razorpay_order_id:`order_sim_${Date.now()}`,razorpay_signature:"simulated_signature"})},1200);return}const l={key:z.RAZORPAY_KEY_ID,amount:Math.round(s*100),currency:"INR",name:z.STORE.NAME,description:`Order #${t} - Premium Automotive Detailing`,image:"https://images.unsplash.com/photo-1617814076367-b759c7d7e738?auto=format&fit=crop&w=200&q=80",prefill:{name:i.name||"",email:i.email||"",contact:i.phone||""},theme:{color:"#0284c7",backdrop_color:"rgba(9, 13, 22, 0.85)"},notes:{order_id:t,brand:"XORONIQ Car Care",origin:"India"},modal:{ondismiss:function(){n&&n({error:"Payment modal closed by customer."})}},handler:function(a){e&&e(a)}};try{const a=new window.Razorpay(l);a.on("payment.failed",function(m){n&&n(m.error)}),a.open()}catch(a){console.error("Error opening Razorpay:",a),n&&n(a)}}function N(){const s=D(),t=document.getElementById("cust-pincode");let i=t?t.value.trim():"",e=w(i);const n=document.getElementById("checkout-items-list"),f=document.getElementById("checkout-subtotal"),l=document.getElementById("checkout-shipping"),a=document.getElementById("checkout-total"),m=document.getElementById("checkout-form"),o=document.getElementById("place-order-btn"),c=document.getElementById("checkout-pincode-notice");function x(){i=t?t.value.trim():"",e=w(i),f&&(f.textContent=v(e.subtotal)),l&&(e.shipping===0?l.innerHTML='<span class="text-success fw-bold">FREE (Orders > ₹2,000)</span>':e.isLocalDelivery?l.innerHTML='<span class="text-accent fw-bold">₹40 <small class="text-muted-custom fw-normal">(Local 676xxx)</small></span>':l.innerHTML='<span class="text-dark fw-bold">₹80 <small class="text-muted-custom fw-normal">(Standard)</small></span>'),a&&(a.textContent=v(e.total)),c&&(e.shipping===0?(c.innerHTML='<span class="text-success small fw-semibold"><i class="bi bi-check-circle-fill me-1"></i> Order above ₹2,000 — Free Shipping Applied!</span>',c.style.display="block"):e.isLocalDelivery?(c.innerHTML='<span class="text-accent small fw-semibold"><i class="bi bi-geo-alt-fill me-1"></i> Local Area PIN (Near 676306) — Reduced Delivery Fee: ₹40</span>',c.style.display="block"):i.length===6?(c.innerHTML='<span class="text-muted-custom small"><i class="bi bi-truck me-1"></i> Standard Express Shipping: ₹80 (Free above ₹2,000)</span>',c.style.display="block"):c.style.display="none")}if(t&&t.addEventListener("input",x),s.length===0){n&&(n.innerHTML=`
+        <div class="text-center py-5">
+          <i class="bi bi-cart-x display-4 text-muted-custom mb-3"></i>
+          <h4 class="font-heading text-black fw-bold">NO ITEMS IN CART</h4>
+          <p class="text-muted-custom small mb-4">Please add products before proceeding to checkout.</p>
+          <a href="shop.html" class="btn btn-x-primary btn-sm">EXPLORE THE COLLECTION</a>
+        </div>
+      `),o&&(o.disabled=!0);return}n&&(n.innerHTML=s.map(r=>`
+      <div class="d-flex align-items-center justify-content-between py-3 border-bottom border-secondary border-opacity-25">
+        <div class="d-flex align-items-center gap-3">
+          <div class="position-relative">
+            <img src="${r.image}" alt="${r.name}" class="rounded p-1 bg-surface-custom border border-secondary border-opacity-25" style="width: 55px; height: 55px; object-fit: contain;">
+            <span class="badge-status status-active position-absolute top-0 start-100 translate-middle" style="font-size: 0.65rem; padding: 0.15rem 0.4rem;">
+              ${r.quantity}
+            </span>
+          </div>
+          <div>
+            <div class="font-heading fw-bold text-black small">${r.name}</div>
+            <div class="text-muted-custom" style="font-size: 0.75rem;">SKU: ${r.sku||"N/A"}</div>
+          </div>
+        </div>
+        <div class="font-mono text-black fw-bold small">
+          ${v(r.price*r.quantity)}
+        </div>
+      </div>
+    `).join("")),x(),m&&m.addEventListener("submit",async r=>{r.preventDefault();const b=document.getElementById("cust-name").value.trim(),h=document.getElementById("cust-email").value.trim(),k=document.getElementById("cust-phone").value.trim(),L=document.getElementById("cust-address").value.trim(),T=document.getElementById("cust-city").value.trim(),C=document.getElementById("cust-state").value.trim(),g=document.getElementById("cust-pincode").value.trim();if(!b||!h||!k||!L||!T||!C||!g){u("Please fill in all shipping details.","warning");return}const I=k.replace(/\D/g,"");if(I.length<10){u("Please enter a valid 10-digit mobile number.","warning");return}e=w(g);const _=o.innerHTML;o.disabled=!0,o.innerHTML=`
+        <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+        INITIALIZING SECURE CHECKOUT...
+      `;const p=A();try{await H({amount:e.total,orderId:p,customer:{name:b,email:h,phone:I},onSuccess:async d=>{o.innerHTML=`
+              <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+              SECURING ORDER IN DATABASE...
+            `;const E={orderId:p,customer:{name:b,email:h,phone:I},shippingAddress:{address:L,city:T,state:C,pincode:g,country:"India"},items:s,subtotal:e.subtotal,shipping:e.shipping,total:e.total,payment:{method:"RAZORPAY",razorpayPaymentId:d.razorpay_payment_id||`pay_${Date.now()}`,razorpayOrderId:d.razorpay_order_id||"",status:"PAID"}};try{await B(E),O("xoroniq_last_order",E),R(),window.location.href=`success.html?orderId=${p}`}catch(P){console.error("Failed to store order in Firestore:",P),O("xoroniq_last_order",E),R(),window.location.href=`success.html?orderId=${p}`}},onFailure:d=>{console.warn("Payment failed or cancelled:",d),o.disabled=!1,o.innerHTML=_,u("Payment was not completed. Please try again.","error")}})}catch(d){console.error("Error in checkout flow:",d),o.disabled=!1,o.innerHTML=_,u("Unable to start payment checkout.","error")}})}document.addEventListener("DOMContentLoaded",N);

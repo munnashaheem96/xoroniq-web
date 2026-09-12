@@ -1,0 +1,1 @@
+import"./main-Cp1ODo_Z.js";import{a as e}from"./auth-D9U9A4t7.js";document.addEventListener("DOMContentLoaded",()=>{e();const n=document.getElementById("admin-quick-demo-btn");n&&n.addEventListener("click",()=>{localStorage.setItem("xoroniq_admin_session",JSON.stringify({email:"admin@xoroniq.com",role:"admin",time:Date.now()})),window.location.href="index.html"})});

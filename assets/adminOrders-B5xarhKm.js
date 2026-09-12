@@ -1,0 +1,1 @@
+import"./main-Cp1ODo_Z.js";import{r as i,i as n}from"./auth-D9U9A4t7.js";import{i as d}from"./orders-BeSGmTOD.js";document.addEventListener("DOMContentLoaded",()=>{i(),n(),d();const t=document.getElementById("toggle-sidebar-btn"),e=document.getElementById("adminSidebar");t&&e&&t.addEventListener("click",()=>{e.classList.toggle("show")})});
