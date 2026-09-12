@@ -145,10 +145,7 @@
     animation: none !important;
   }
 
-  /* Force preloader off fast on mobile */
-  #xoroniq-preloader {
-    transition-duration: 0.4s !important;
-  }
+
 
   .section-padding {
     padding: 2.5rem 0;
@@ -495,8 +492,5 @@
     filter: none !important;
     animation: none !important;
   }
-
-  #xoroniq-preloader {
-    display: none !important;
-  }
 }
+
