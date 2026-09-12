@@ -4,7 +4,7 @@
 // ==========================================================================
 
 import { getCart, getCartTotals, clearCart } from './cart.js';
-import { createOrder } from './firebase.js';
+import { createOrder, onUserAuthChange, getUserProfile } from './firebase.js';
 import { openRazorpayCheckout } from './razorpay.js';
 import { formatCurrency, generateOrderId, showToast, setStorage } from './utils.js';
 
@@ -13,6 +13,29 @@ export function initCheckoutPage() {
   const pincodeInput = document.getElementById('cust-pincode');
   let currentPincode = pincodeInput ? pincodeInput.value.trim() : '';
   let totals = getCartTotals(currentPincode);
+
+  // Auto-fill logged-in customer profile details
+  onUserAuthChange(async (user) => {
+    if (!user) return;
+    const nameInput = document.getElementById('cust-name');
+    const emailInput = document.getElementById('cust-email');
+    const phoneInput = document.getElementById('cust-phone');
+    const cityInput = document.getElementById('cust-city');
+
+    if (emailInput && !emailInput.value) emailInput.value = user.email || '';
+    if (nameInput && !nameInput.value && user.displayName) nameInput.value = user.displayName;
+
+    try {
+      const profile = await getUserProfile(user.uid);
+      if (profile) {
+        if (nameInput && !nameInput.value) nameInput.value = profile.displayName || user.displayName || '';
+        if (phoneInput && !phoneInput.value && profile.phone) phoneInput.value = profile.phone;
+        if (cityInput && !cityInput.value && profile.city) cityInput.value = profile.city;
+      }
+    } catch (err) {
+      console.warn('Profile autofill note:', err);
+    }
+  });
 
   const orderItemsContainer = document.getElementById('checkout-items-list');
   const subtotalEl = document.getElementById('checkout-subtotal');
