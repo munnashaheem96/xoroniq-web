@@ -7,10 +7,15 @@ import { initializeApp, getApps } from 'firebase/app';
 import { 
   getAuth, 
   signInWithEmailAndPassword, 
+  createUserWithEmailAndPassword,
+  updateProfile,
+  GoogleAuthProvider,
+  signInWithPopup,
   signOut, 
   onAuthStateChanged,
   sendPasswordResetEmail
 } from 'firebase/auth';
+
 import { 
   getFirestore, 
   collection, 
@@ -603,4 +608,78 @@ export function onAdminAuthChange(callback) {
 
 export async function sendAdminResetPassword(email) {
   return await sendPasswordResetEmail(auth, email);
+}
+
+// ==========================================================================
+// CUSTOMER AUTH & PROFILE SERVICES
+// ==========================================================================
+
+export function onUserAuthChange(callback) {
+  return onAuthStateChanged(auth, callback);
+}
+
+export async function userSignIn(email, password) {
+  return await signInWithEmailAndPassword(auth, email, password);
+}
+
+export async function userGoogleSignIn() {
+  const provider = new GoogleAuthProvider();
+  provider.setCustomParameters({ prompt: 'select_account' });
+  return await signInWithPopup(auth, provider);
+}
+
+export async function userSignOut() {
+  return await signOut(auth);
+}
+
+export async function sendUserPasswordReset(email) {
+  return await sendPasswordResetEmail(auth, email);
+}
+
+export async function userSignUp(name, email, password, phone, city, vehicleType) {
+  const cred = await createUserWithEmailAndPassword(auth, email, password);
+  // Set display name
+  await updateProfile(cred.user, { displayName: name });
+  // Save profile to Firestore
+  await setDoc(doc(db, 'users', cred.user.uid), {
+    name,
+    email,
+    phone: phone || '',
+    city: city || '',
+    vehicleType: vehicleType || 'Car',
+    vehicleModel: '',
+    uid: cred.user.uid,
+    createdAt: serverTimestamp(),
+    updatedAt: serverTimestamp()
+  });
+  return cred;
+}
+
+export async function getUserProfile(uid) {
+  try {
+    const snap = await getDoc(doc(db, 'users', uid));
+    return snap.exists() ? snap.data() : null;
+  } catch (e) {
+    console.warn('getUserProfile:', e);
+    return null;
+  }
+}
+
+export async function saveUserProfile(uid, data) {
+  await setDoc(doc(db, 'users', uid), data, { merge: true });
+}
+
+export async function getUserOrders(email) {
+  try {
+    const q = query(
+      collection(db, 'orders'),
+      where('customerEmail', '==', email),
+      orderBy('createdAt', 'desc')
+    );
+    const snap = await getDocs(q);
+    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  } catch (e) {
+    console.warn('getUserOrders:', e);
+    return [];
+  }
 }

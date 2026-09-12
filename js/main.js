@@ -16,6 +16,7 @@ import {
 import { updateCartBadges, renderOffcanvasCart, openCartDrawer, getCartTotals } from './cart.js';
 import { initSearch } from './search.js';
 import { showToast, formatCurrency } from './utils.js';
+import { initUserNavbar } from './user.js';
 
 document.addEventListener('DOMContentLoaded', () => {
   // Ensure page starts at top if not linking to anchor
@@ -31,6 +32,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initParallaxTilt();
   initStatCounters();
   initSearch();
+  initUserNavbar();
 
   // Initialize Cart drawer rendering & badge states
   updateCartBadges();

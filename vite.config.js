@@ -39,6 +39,7 @@ export default defineConfig({
   plugins: [
     staticCopyPlugin([
       { src: 'images', dest: 'images' },
+      { src: 'css', dest: 'css' },
     ])
   ],
   build: {
@@ -54,6 +55,8 @@ export default defineConfig({
         tracking: resolve(__dirname, 'tracking.html'),
         about: resolve(__dirname, 'about.html'),
         contact: resolve(__dirname, 'contact.html'),
+        auth: resolve(__dirname, 'auth.html'),
+        profile: resolve(__dirname, 'profile.html'),
         adminLogin: resolve(__dirname, 'admin/login.html'),
         adminDashboard: resolve(__dirname, 'admin/index.html'),
         adminProducts: resolve(__dirname, 'admin/products.html'),
