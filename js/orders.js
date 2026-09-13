@@ -5,6 +5,12 @@
 
 import { getOrderById, searchOrders, getOrders, updateOrderStatus } from './firebase.js';
 import { formatCurrency, formatDate, showToast } from './utils.js';
+import {
+  exportOrdersToCSV,
+  getGoogleSheetsWebhookUrl,
+  setGoogleSheetsWebhookUrl,
+  sendOrderToGoogleSheets
+} from './sheets.js';
 
 /**
  * Initialize Customer Order Tracking Page (tracking.html)
@@ -257,9 +263,14 @@ export async function initAdminOrdersPage() {
             </select>
           </td>
           <td>
-            <button class="btn btn-x-outline btn-sm view-order-modal-btn" data-id="${order.id}">
-              <i class="bi bi-eye me-1"></i> Details
-            </button>
+            <div class="d-flex align-items-center gap-1">
+              <button class="btn btn-x-outline btn-sm view-order-modal-btn" data-id="${order.id}" title="View Full Order Details">
+                <i class="bi bi-eye me-1"></i> Details
+              </button>
+              <button class="btn btn-x-outline btn-sm sync-order-sheet-btn" data-id="${order.id}" title="Push this order to Google Sheet">
+                <i class="bi bi-file-earmark-spreadsheet text-success"></i>
+              </button>
+            </div>
           </td>
         </tr>
       `;
@@ -287,10 +298,161 @@ export async function initAdminOrdersPage() {
         if (order) openAdminOrderModal(order);
       });
     });
+
+    // Attach individual Google Sheet sync listeners
+    tableBody.querySelectorAll('.sync-order-sheet-btn').forEach(btn => {
+      btn.addEventListener('click', async (e) => {
+        e.stopPropagation();
+        const id = btn.getAttribute('data-id');
+        const order = allOrders.find(o => o.id === id);
+        if (!order) return;
+
+        const originalHtml = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = `<span class="spinner-border spinner-border-sm"></span>`;
+
+        try {
+          const res = await sendOrderToGoogleSheets(order);
+          if (res.queued) {
+            showToast(`Order queued! Configure your Google Sheets Webhook URL to complete sync.`, 'warning');
+          } else {
+            showToast(`Order ${order.orderId} dispatched to Google Sheets!`, 'success');
+          }
+        } catch (err) {
+          showToast('Failed to sync to Google Sheets: ' + err.message, 'error');
+        } finally {
+          btn.disabled = false;
+          btn.innerHTML = originalHtml;
+        }
+      });
+    });
   }
 
   if (searchInput) searchInput.addEventListener('input', renderOrdersList);
   if (statusFilter) statusFilter.addEventListener('change', renderOrdersList);
+
+  // -------------------------------------------------------------
+  // Google Sheets & CSV Controls
+  // -------------------------------------------------------------
+  const exportCsvBtn = document.getElementById('export-orders-csv-btn');
+  const exportCsvModalBtn = document.getElementById('download-orders-csv-modal-btn');
+  const handleExportCsv = () => {
+    if (!allOrders || allOrders.length === 0) {
+      showToast('No orders available to export.', 'warning');
+      return;
+    }
+    try {
+      exportOrdersToCSV(allOrders);
+      showToast(`Exported ${allOrders.length} orders to CSV successfully!`, 'success');
+    } catch (err) {
+      showToast(err.message || 'Export failed', 'error');
+    }
+  };
+  if (exportCsvBtn) exportCsvBtn.addEventListener('click', handleExportCsv);
+  if (exportCsvModalBtn) exportCsvModalBtn.addEventListener('click', handleExportCsv);
+
+  const urlInput = document.getElementById('sheets-webhook-url-input');
+  const saveUrlBtn = document.getElementById('save-sheets-url-btn');
+  const statusText = document.getElementById('sheets-url-status-text');
+  const testConnBtn = document.getElementById('test-sheets-connection-btn');
+  const syncAllBtn = document.getElementById('sync-all-orders-btn');
+  const feedbackEl = document.getElementById('sheets-action-feedback');
+
+  function updateSheetsStatusBadge() {
+    const activeUrl = getGoogleSheetsWebhookUrl();
+    if (urlInput) urlInput.value = activeUrl || '';
+    if (statusText) {
+      if (activeUrl) {
+        statusText.innerHTML = `<span class="badge bg-success text-white"><i class="bi bi-check-circle-fill me-1"></i> Active Webhook Connected</span> <span class="text-muted-custom small ms-2">All incoming orders automatically append to your Google Sheet</span>`;
+      } else {
+        statusText.innerHTML = `<span class="badge bg-secondary"><i class="bi bi-exclamation-triangle-fill me-1"></i> Not Configured</span> <span class="text-muted-custom small ms-2">Paste your Google Apps Script Webhook URL above</span>`;
+      }
+    }
+  }
+
+  updateSheetsStatusBadge();
+
+  if (saveUrlBtn && urlInput) {
+    saveUrlBtn.addEventListener('click', () => {
+      const val = urlInput.value.trim();
+      if (val && !val.startsWith('https://script.google.com/')) {
+        showToast('Please enter a valid Google Apps Script URL starting with https://script.google.com/', 'warning');
+        return;
+      }
+      setGoogleSheetsWebhookUrl(val);
+      updateSheetsStatusBadge();
+      showToast(val ? 'Google Sheets Webhook URL saved successfully!' : 'Google Sheets Webhook URL cleared.', 'success');
+    });
+  }
+
+  if (testConnBtn) {
+    testConnBtn.addEventListener('click', async () => {
+      const webhook = getGoogleSheetsWebhookUrl();
+      if (!webhook) {
+        showToast('Please enter and save a Webhook URL first.', 'warning');
+        return;
+      }
+      testConnBtn.disabled = true;
+      testConnBtn.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span> Sending Test...`;
+      try {
+        const testOrder = {
+          orderId: 'TEST-' + Math.floor(1000 + Math.random() * 9000),
+          orderStatus: 'Test Verified',
+          customer: { name: 'XORONIQ Test User', email: 'test@xoroniq.store', phone: '9999999999' },
+          shippingAddress: { address: 'Test Detailing Bay, Near NH 66', city: 'Malappuram', state: 'Kerala', pincode: '676306', country: 'India' },
+          items: [{ name: 'XORONIQ Essential Kit (Test)', quantity: 1, price: 1199, sku: 'XOR-KIT-ESS-TEST' }],
+          subtotal: 1199,
+          shipping: 0,
+          total: 1199,
+          payment: { method: 'TEST', razorpayPaymentId: 'test_pay_' + Date.now() }
+        };
+        await sendOrderToGoogleSheets(testOrder);
+        showToast('Test order row dispatched to your Google Sheet!', 'success');
+        if (feedbackEl) {
+          feedbackEl.innerHTML = `<div class="alert alert-success py-2 px-3 small mb-0"><i class="bi bi-check-circle-fill me-1"></i> Test order row successfully dispatched! Check the "Orders" sheet in your Google Spreadsheet.</div>`;
+          feedbackEl.style.display = 'block';
+        }
+      } catch (err) {
+        showToast('Error dispatching test order: ' + err.message, 'error');
+      } finally {
+        testConnBtn.disabled = false;
+        testConnBtn.innerHTML = `<i class="bi bi-lightning-charge me-1"></i> Send Test Row`;
+      }
+    });
+  }
+
+  if (syncAllBtn) {
+    syncAllBtn.addEventListener('click', async () => {
+      const webhook = getGoogleSheetsWebhookUrl();
+      if (!webhook) {
+        showToast('Please enter and save a Webhook URL first.', 'warning');
+        return;
+      }
+      if (!allOrders || allOrders.length === 0) {
+        showToast('No orders found to sync.', 'warning');
+        return;
+      }
+      syncAllBtn.disabled = true;
+      syncAllBtn.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span> Syncing Orders (0/${allOrders.length})...`;
+      let count = 0;
+      for (let i = 0; i < allOrders.length; i++) {
+        try {
+          await sendOrderToGoogleSheets(allOrders[i]);
+          count++;
+          syncAllBtn.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span> Syncing Orders (${count}/${allOrders.length})...`;
+        } catch (e) {
+          console.warn('Sync order item error:', e);
+        }
+      }
+      syncAllBtn.disabled = false;
+      syncAllBtn.innerHTML = `<i class="bi bi-cloud-arrow-up me-1"></i> Sync All Existing Orders to Sheets`;
+      showToast(`Successfully synced ${count} orders to Google Sheets!`, 'success');
+      if (feedbackEl) {
+        feedbackEl.innerHTML = `<div class="alert alert-success py-2 px-3 small mb-0"><i class="bi bi-check-circle-fill me-1"></i> Successfully synced ${count} orders into your Google Sheet!</div>`;
+        feedbackEl.style.display = 'block';
+      }
+    });
+  }
 
   loadOrders();
 }
@@ -370,11 +532,33 @@ function openAdminOrderModal(order) {
       </table>
     </div>
 
-    <div class="d-flex justify-content-between align-items-center pt-3 border-top border-secondary border-opacity-25 font-heading">
+    <div class="d-flex flex-wrap justify-content-between align-items-center pt-3 border-top border-secondary border-opacity-25 font-heading gap-2">
       <div class="text-muted-custom">Payment ID: <span class="font-mono text-black">${order.payment?.razorpayPaymentId || 'N/A'}</span></div>
-      <div class="fs-5 text-black">Grand Total: <span class="text-accent font-bold">${formatCurrency(order.total)}</span></div>
+      <div class="d-flex align-items-center gap-3">
+        <button class="btn btn-x-outline btn-sm font-sans" id="modal-push-sheet-btn">
+          <i class="bi bi-file-earmark-spreadsheet text-success me-1"></i> Push to Google Sheet
+        </button>
+        <div class="fs-5 text-black">Grand Total: <span class="text-accent font-bold">${formatCurrency(order.total)}</span></div>
+      </div>
     </div>
   `;
+
+  const pushSheetBtn = modalBody.querySelector('#modal-push-sheet-btn');
+  if (pushSheetBtn) {
+    pushSheetBtn.addEventListener('click', async () => {
+      pushSheetBtn.disabled = true;
+      pushSheetBtn.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span> Pushing...`;
+      try {
+        await sendOrderToGoogleSheets(order);
+        showToast(`Order ${order.orderId} pushed to Google Sheets!`, 'success');
+      } catch (e) {
+        showToast('Sync error: ' + e.message, 'error');
+      } finally {
+        pushSheetBtn.disabled = false;
+        pushSheetBtn.innerHTML = `<i class="bi bi-file-earmark-spreadsheet text-success me-1"></i> Push to Google Sheet`;
+      }
+    });
+  }
 
   const bsModal = new window.bootstrap.Modal(modalEl);
   bsModal.show();

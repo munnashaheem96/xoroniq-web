@@ -68,7 +68,7 @@
             </div>
           </div>
 
-          <div class="d-flex align-items-center gap-3">
+          <div class="d-flex align-items-center flex-wrap gap-2">
             <select id="admin-orders-filter" class="form-select form-control-custom py-2 px-3 small" style="width: auto;">
               <option value="ALL">All Statuses</option>
               <option value="Payment Confirmed">Payment Confirmed</option>
@@ -78,6 +78,12 @@
               <option value="Cancelled">Cancelled</option>
             </select>
             <span class="badge bg-white border text-dark" id="admin-orders-count">0 Orders</span>
+            <button class="btn btn-x-outline btn-sm d-flex align-items-center gap-1" id="export-orders-csv-btn" title="Download Excel/CSV Spreadsheet">
+              <i class="bi bi-file-earmark-spreadsheet"></i> Export CSV
+            </button>
+            <button class="btn btn-x-primary btn-sm d-flex align-items-center gap-1" id="open-sheets-modal-btn" data-bs-toggle="modal" data-bs-target="#sheetsModal" title="Configure Google Sheets Webhook Sync">
+              <i class="bi bi-file-earmark-text"></i> Google Sheets Sync
+            </button>
           </div>
         </div>
 
@@ -107,6 +113,72 @@
     </main>
   </div>
 
+  <!-- Google Sheets Integration Modal -->
+  <div class="modal fade" id="sheetsModal" tabindex="-1" aria-labelledby="sheetsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content modal-content-custom">
+        <div class="modal-header border-secondary border-opacity-25">
+          <h5 class="modal-title font-heading text-black fw-bold d-flex align-items-center gap-2" id="sheetsModalLabel">
+            <i class="bi bi-file-earmark-spreadsheet text-success fs-4"></i> GOOGLE SHEETS LIVE ORDER SYNC
+          </h5>
+          <button type="button" class="btn-close-custom" data-bs-dismiss="modal"><i class="bi bi-x-lg"></i></button>
+        </div>
+        <div class="modal-body p-4">
+          <div class="alert alert-light border d-flex align-items-start gap-3 mb-4">
+            <i class="bi bi-info-circle-fill text-accent fs-4 mt-1"></i>
+            <div class="small">
+              <strong>Automated Google Sheets Recording:</strong> Every order placed on XORONIQ is automatically pushed in real-time to your Google Spreadsheet via Google Apps Script.
+            </div>
+          </div>
+
+          <div class="mb-4">
+            <label class="form-label text-black small fw-bold font-heading">GOOGLE APPS SCRIPT WEBHOOK URL</label>
+            <div class="input-group">
+              <input type="url" id="sheets-webhook-url-input" class="form-control form-control-custom font-mono small" placeholder="https://script.google.com/macros/s/.../exec">
+              <button class="btn btn-x-primary btn-sm px-3" id="save-sheets-url-btn">
+                <i class="bi bi-check2-circle me-1"></i> Save URL
+              </button>
+            </div>
+            <div class="form-text small mt-1" id="sheets-url-status-text">
+              <span class="badge bg-secondary">Checking configuration...</span>
+            </div>
+          </div>
+
+          <div class="d-flex flex-wrap gap-2 mb-4">
+            <button class="btn btn-x-outline btn-sm" id="test-sheets-connection-btn">
+              <i class="bi bi-lightning-charge me-1"></i> Send Test Row
+            </button>
+            <button class="btn btn-x-primary btn-sm" id="sync-all-orders-btn">
+              <i class="bi bi-cloud-arrow-up me-1"></i> Sync All Existing Orders to Sheets
+            </button>
+            <button class="btn btn-x-outline btn-sm" id="download-orders-csv-modal-btn">
+              <i class="bi bi-download me-1"></i> Download CSV File
+            </button>
+          </div>
+
+          <div id="sheets-action-feedback" class="small mb-4" style="display:none;"></div>
+
+          <div class="p-3 bg-surface-custom rounded border border-secondary border-opacity-25 small">
+            <h6 class="font-heading fw-bold text-black mb-2 d-flex align-items-center gap-2">
+              <i class="bi bi-question-circle text-accent"></i> How to set up your Google Sheet in 2 minutes:
+            </h6>
+            <ol class="ps-3 mb-2 text-muted-custom" style="line-height: 1.6;">
+              <li>Create a new spreadsheet at <a href="https://sheets.new" target="_blank" class="text-accent fw-bold text-decoration-underline">sheets.new</a> named <strong>"XORONIQ Orders"</strong>.</li>
+              <li>Click <strong>Extensions</strong> → <strong>Apps Script</strong> in the top menu.</li>
+              <li>Copy &amp; paste the script from <code class="text-dark bg-white px-1 border rounded">google-apps-script.js</code> (located in this website repo).</li>
+              <li>Click <strong>Deploy</strong> → <strong>New deployment</strong> → Select <strong>Web app</strong>. Set <em>"Who has access"</em> to <strong>"Anyone"</strong> and click <strong>Deploy</strong>.</li>
+              <li>Copy the Web App URL and paste it above!</li>
+            </ol>
+          </div>
+        </div>
+        <div class="modal-footer border-secondary border-opacity-25">
+          <button type="button" class="btn btn-x-outline btn-sm" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
   <script type="module" src="../js/main.js"></script>
   <script type="module">
     import { requireAdminAuth, initAdminLogout } from '../js/auth.js';

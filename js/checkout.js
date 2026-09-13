@@ -7,6 +7,7 @@ import { getCart, getCartTotals, clearCart } from './cart.js';
 import { createOrder, onUserAuthChange, getUserProfile } from './firebase.js';
 import { openRazorpayCheckout } from './razorpay.js';
 import { formatCurrency, generateOrderId, showToast, setStorage } from './utils.js';
+import { sendOrderToGoogleSheets } from './sheets.js';
 
 export function initCheckoutPage() {
   const cart = getCart();
@@ -190,11 +191,17 @@ export function initCheckoutPage() {
 
             try {
               await createOrder(orderData);
+              // Dispatch order to Google Sheets
+              sendOrderToGoogleSheets(orderData).catch(err => {
+                console.warn('Google Sheets sync note:', err);
+              });
               setStorage('xoroniq_last_order', orderData);
               clearCart();
               window.location.href = `success.html?orderId=${orderId}`;
             } catch (err) {
               console.error('Failed to store order in Firestore:', err);
+              // Dispatch order to Google Sheets even if Firestore was slow
+              sendOrderToGoogleSheets(orderData).catch(e => console.warn('Google Sheets fallback note:', e));
               // Store locally in case of network issue
               setStorage('xoroniq_last_order', orderData);
               clearCart();
