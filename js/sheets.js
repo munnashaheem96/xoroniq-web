@@ -85,7 +85,10 @@ export function formatOrderForSheets(orderData) {
     paymentId: payment.razorpayPaymentId || payment.paymentId || (payment.method === 'COD' ? `COD (Pay ₹${orderData.total})` : ''),
     courier: orderData.courier || (orderData.trackingId ? 'Delhivery' : ''),
     trackingId: orderData.trackingId || '',
-    trackingUrl: orderData.trackingUrl || (orderData.trackingId ? `https://www.delhivery.com/track/package/${orderData.trackingId}` : '')
+    trackingUrl: orderData.trackingUrl || (orderData.trackingId ? `https://www.delhivery.com/track/package/${orderData.trackingId}` : ''),
+    adSource: orderData.attribution?.source || '',
+    adCampaign: orderData.attribution?.campaign || '',
+    adMedium: orderData.attribution?.medium || ''
   };
 }
 
@@ -210,7 +213,9 @@ export function exportOrdersToCSV(orders = []) {
     'Payment Method',
     'Payment ID',
     'Courier',
-    'Tracking ID / AWB'
+    'Tracking ID / AWB',
+    'Ad Source',
+    'Ad Campaign'
   ];
 
   const escapeCSV = (val) => {
@@ -224,6 +229,7 @@ export function exportOrdersToCSV(orders = []) {
     const addr = order.shippingAddress || {};
     const pay = order.payment || {};
     const items = (order.items || []).map(i => `${i.name} (x${i.quantity || 1})`).join('; ');
+    const attr = order.attribution || {};
 
     let dateStr = '—';
     if (order.createdAt) {
@@ -249,7 +255,9 @@ export function exportOrdersToCSV(orders = []) {
       escapeCSV(pay.method || 'RAZORPAY'),
       escapeCSV(pay.razorpayPaymentId || ''),
       escapeCSV(order.courier || (order.trackingId ? 'Delhivery' : '')),
-      escapeCSV(order.trackingId || '')
+      escapeCSV(order.trackingId || ''),
+      escapeCSV(attr.source || ''),
+      escapeCSV(attr.campaign || '')
     ].join(',');
   });
 

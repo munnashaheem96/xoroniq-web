@@ -133,22 +133,41 @@ export function trackInitiateCheckout(items = [], total = 0) {
  * @param {Object} orderData
  */
 export function trackPurchase(orderData) {
-  if (!orderData) return;
+  if (!orderData || !orderData.orderId) return;
   initMetaPixel();
+
+  // Deduplication check: prevent duplicate Purchase events on page refresh
+  const storageKey = `xoroniq_fbq_purchase_${orderData.orderId}`;
+  try {
+    if (sessionStorage.getItem(storageKey)) {
+      console.info(`Meta Pixel Purchase already tracked for ${orderData.orderId}, skipping duplicate.`);
+      return;
+    }
+  } catch (e) {
+    // ignore sessionStorage errors
+  }
 
   const items = Array.isArray(orderData.items) ? orderData.items : [];
   const contentIds = items.map(i => String(i.id || i.sku || 'item'));
+  const contentNames = items.map(i => i.name).filter(Boolean);
   const numItems = items.reduce((acc, curr) => acc + (Number(curr.quantity) || 1), 0);
 
   if (typeof window.fbq === 'function') {
     window.fbq('track', 'Purchase', {
-      content_ids: contentIds,
+      content_name: contentNames.length === 1 ? contentNames[0] : (contentNames.join(', ') || 'XORONIQ Order'),
+      content_ids: contentIds.length > 0 ? contentIds : ['XOR-KIT-001'],
       content_type: 'product',
       num_items: numItems,
       value: Number(orderData.total) || 0,
       currency: 'INR',
       order_id: String(orderData.orderId || '')
     });
+
+    try {
+      sessionStorage.setItem(storageKey, 'true');
+    } catch (e) {
+      // ignore
+    }
     console.info(`✓ Meta Pixel Purchase tracked for order: ${orderData.orderId}`);
   }
 }

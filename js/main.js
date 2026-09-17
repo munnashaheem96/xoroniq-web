@@ -15,7 +15,7 @@ import {
 } from './animations.js';
 import { updateCartBadges, renderOffcanvasCart, openCartDrawer, getCartTotals } from './cart.js';
 import { initSearch } from './search.js';
-import { showToast, formatCurrency } from './utils.js';
+import { showToast, formatCurrency, captureUtmAttribution } from './utils.js';
 import { initUserNavbar } from './user.js';
 import { initMetaPixel } from './pixel.js';
 
@@ -24,6 +24,9 @@ document.addEventListener('DOMContentLoaded', () => {
   if (!window.location.hash) {
     window.scrollTo(0, 0);
   }
+
+  // Capture incoming UTM parameters (Meta Ads, Google Ads, Reels, etc.)
+  captureUtmAttribution();
 
   // Initialize Meta Ads (Meta Pixel)
   initMetaPixel();

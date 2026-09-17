@@ -293,3 +293,44 @@ export function setStorage(key, value) {
     console.error(`Error writing to localStorage: ${key}`, e);
   }
 }
+
+/**
+ * Capture UTM & Meta Ad click attribution parameters from URL
+ * Persists source, campaign, medium, content & fbclid so conversions can be tracked to exact ads
+ */
+export function captureUtmAttribution() {
+  try {
+    const params = new URLSearchParams(window.location.search);
+    const utmSource = params.get('utm_source');
+    const utmMedium = params.get('utm_medium');
+    const utmCampaign = params.get('utm_campaign');
+    const utmContent = params.get('utm_content');
+    const utmTerm = params.get('utm_term');
+    const fbclid = params.get('fbclid');
+
+    if (utmSource || utmCampaign || fbclid) {
+      const attribution = {
+        source: utmSource || (fbclid ? 'facebook' : ''),
+        medium: utmMedium || (fbclid ? 'paid_social' : ''),
+        campaign: utmCampaign || '',
+        content: utmContent || '',
+        term: utmTerm || '',
+        fbclid: fbclid || '',
+        capturedAt: new Date().toISOString(),
+        landingPage: window.location.pathname + window.location.search
+      };
+      setStorage('xoroniq_attribution', attribution);
+      console.info('✓ Meta Ad / UTM attribution captured:', attribution);
+    }
+  } catch (e) {
+    console.warn('Could not capture UTM params:', e);
+  }
+}
+
+/**
+ * Get active UTM & Meta Ad attribution data
+ */
+export function getUtmAttribution() {
+  return getStorage('xoroniq_attribution', null);
+}
+

@@ -6,7 +6,7 @@
 import { getCart, getCartTotals, clearCart } from './cart.js';
 import { createOrder, onUserAuthChange, getUserProfile } from './firebase.js';
 import { openRazorpayCheckout } from './razorpay.js';
-import { formatCurrency, generateOrderId, showToast, setStorage } from './utils.js';
+import { formatCurrency, generateOrderId, showToast, setStorage, getUtmAttribution } from './utils.js';
 import { sendOrderToGoogleSheets } from './sheets.js';
 import { trackInitiateCheckout } from './pixel.js';
 
@@ -270,6 +270,8 @@ export function initCheckoutPage() {
           CONFIRMING CASH ON DELIVERY ORDER...
         `;
 
+        const attribution = getUtmAttribution();
+
         const orderData = {
           orderId: orderId,
           customer: { name, email, phone: cleanPhone },
@@ -285,7 +287,8 @@ export function initCheckoutPage() {
             status: 'PENDING_COD',
             codFee: totals.codFee,
             details: 'Cash on Delivery (+₹20 extra handling fee)'
-          }
+          },
+          attribution: attribution || null
         };
 
         try {
@@ -325,6 +328,8 @@ export function initCheckoutPage() {
               SECURING ORDER IN DATABASE...
             `;
 
+            const attribution = getUtmAttribution();
+
             const orderData = {
               orderId: orderId,
               customer: { name, email, phone: cleanPhone },
@@ -340,7 +345,8 @@ export function initCheckoutPage() {
                 razorpayPaymentId: paymentResponse.razorpay_payment_id || `pay_${Date.now()}`,
                 razorpayOrderId: paymentResponse.razorpay_order_id || '',
                 status: 'PAID'
-              }
+              },
+              attribution: attribution || null
             };
 
             try {
