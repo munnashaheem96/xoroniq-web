@@ -4,7 +4,8 @@
 // ==========================================================================
 
 import { CONFIG } from './config.js';
-import { formatCurrency, getStorage, setStorage, showToast, isNearLocalPincode } from './utils.js';
+import { formatCurrency, getStorage, setStorage, showToast, isNearLocalPincode, isKeralaAddress } from './utils.js';
+import { trackAddToCart } from './pixel.js';
 
 const CART_STORAGE_KEY = 'xoroniq_cart';
 
@@ -28,37 +29,65 @@ export function saveCart(cart) {
 /**
  * Calculate Cart Totals
  * @param {string|number|null} pincode - Optional customer pincode
+ * @param {string} paymentMethod - 'RAZORPAY' or 'COD'
+ * @param {string|null} state - Optional customer state
+ * @param {string|null} city - Optional customer city
  */
-export function getCartTotals(pincode = null) {
+export function getCartTotals(pincode = null, paymentMethod = 'RAZORPAY', state = null, city = null) {
   const cart = getCart();
   const count = cart.reduce((sum, item) => sum + (item.quantity || 1), 0);
   const subtotal = cart.reduce((sum, item) => sum + (item.price * (item.quantity || 1)), 0);
   
   let shipping = 0;
   let freeShippingRemaining = 0;
+  let isKerala = false;
   let isLocalDelivery = false;
+  let codFee = 0;
+
+  const isKeralaDestination = isKeralaAddress(pincode, state, city);
 
   if (subtotal > 0) {
     if (subtotal >= CONFIG.STORE.FREE_SHIPPING_THRESHOLD) {
       shipping = 0;
       freeShippingRemaining = 0;
+      isKerala = isKeralaDestination;
+      isLocalDelivery = isKeralaDestination;
+    } else if (isKeralaDestination) {
+      shipping = CONFIG.STORE.KERALA_SHIPPING_FEE || 60; // All Kerala delivery ₹60
+      isKerala = true;
+      isLocalDelivery = true;
+      freeShippingRemaining = Math.max(0, CONFIG.STORE.FREE_SHIPPING_THRESHOLD - subtotal);
+    } else if (pincode && String(pincode).trim().length === 6) {
+      // Confirmed outside Kerala 6-digit PIN
+      shipping = CONFIG.STORE.STANDARD_SHIPPING_FEE || 80;
+      isKerala = false;
+      isLocalDelivery = false;
+      freeShippingRemaining = Math.max(0, CONFIG.STORE.FREE_SHIPPING_THRESHOLD - subtotal);
     } else {
-      if (pincode && isNearLocalPincode(pincode)) {
-        shipping = CONFIG.STORE.LOCAL_SHIPPING_FEE; // ₹40 near 676306
-        isLocalDelivery = true;
-      } else {
-        shipping = CONFIG.STORE.STANDARD_SHIPPING_FEE; // ₹80 standard
-      }
+      // Default initial delivery calculation when destination not yet confirmed:
+      // Since XORONIQ is Kerala-based, default delivery rate is Kerala rate ₹60
+      shipping = CONFIG.STORE.KERALA_SHIPPING_FEE || 60;
+      isKerala = true;
+      isLocalDelivery = true;
       freeShippingRemaining = Math.max(0, CONFIG.STORE.FREE_SHIPPING_THRESHOLD - subtotal);
     }
   }
 
-  const total = subtotal + shipping;
+  // Cash on Delivery extra ₹20 fee
+  const isCod = (paymentMethod === 'COD' || paymentMethod === 'CASH_ON_DELIVERY');
+  if (isCod && subtotal > 0) {
+    codFee = CONFIG.STORE.COD_FEE || 20;
+  }
+
+  const total = subtotal + shipping + codFee;
 
   return {
     count,
     subtotal,
     shipping,
+    codFee,
+    isCod,
+    isKerala,
     isLocalDelivery,
     freeShippingRemaining,
     total,
@@ -77,8 +106,15 @@ export function addToCart(product, quantity = 1) {
     ? product.images[0] 
     : (product.image || 'images/product/essentials.png');
 
+  const deliveryFee = (product.deliveryFee !== undefined && product.deliveryFee !== null && !isNaN(Number(product.deliveryFee)))
+    ? Number(product.deliveryFee)
+    : CONFIG.STORE.STANDARD_SHIPPING_FEE;
+
   if (existingIndex > -1) {
     cart[existingIndex].quantity += quantity;
+    if (cart[existingIndex].deliveryFee === undefined) {
+      cart[existingIndex].deliveryFee = deliveryFee;
+    }
   } else {
     cart.push({
       id: product.id,
@@ -86,6 +122,7 @@ export function addToCart(product, quantity = 1) {
       slug: product.slug || product.id,
       price: Number(product.price) || 0,
       compareAtPrice: Number(product.compareAtPrice) || 0,
+      deliveryFee: deliveryFee,
       image: itemImage,
       quantity: quantity,
       sku: product.sku || ''
@@ -93,6 +130,7 @@ export function addToCart(product, quantity = 1) {
   }
 
   saveCart(cart);
+  trackAddToCart(product, quantity);
   showToast(`${product.name} added to cart`, 'success');
   openCartDrawer();
 }
@@ -209,6 +247,7 @@ export function renderOffcanvasCart() {
           </button>
         </div>
         <div class="cart-item-price">${formatCurrency(item.price)}</div>
+        <div class="text-muted-custom" style="font-size: 0.72rem;"><i class="bi bi-truck text-accent me-1"></i>Delivery: ₹${item.deliveryFee !== undefined ? item.deliveryFee : CONFIG.STORE.STANDARD_SHIPPING_FEE}</div>
         <div class="d-flex align-items-center justify-content-between mt-2">
           <div class="quantity-control">
             <button class="quantity-btn btn-qty-minus" data-id="${item.id}">-</button>

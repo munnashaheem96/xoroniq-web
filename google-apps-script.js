@@ -36,7 +36,9 @@ const HEADERS = [
   "Shipping (₹)",
   "Total (₹)",
   "Payment Method",
-  "Payment ID"
+  "Payment ID",
+  "Courier",
+  "Tracking ID"
 ];
 
 function doGet(e) {
@@ -88,7 +90,8 @@ function doPost(e) {
     const now = new Date();
     const timestamp = data.timestamp || Utilities.formatDate(now, "Asia/Kolkata", "dd/MM/yyyy HH:mm:ss");
     const orderId = data.orderId || ("XOR-" + Math.floor(100000 + Math.random() * 900000));
-    const status = data.status || data.orderStatus || "Payment Confirmed";
+    const isCod = (data.payment && data.payment.method === "COD") || data.paymentMethod === "COD" || data.paymentMethod === "CASH ON DELIVERY";
+    const status = data.status || data.orderStatus || (isCod ? "Order Placed (COD)" : "Payment Confirmed");
     
     // Customer
     const customerName = (data.customer && data.customer.name) || data.customerName || data.name || "";
@@ -119,8 +122,10 @@ function doPost(e) {
     const subtotal = data.subtotal !== undefined ? Number(data.subtotal) : 0;
     const shipping = data.shipping !== undefined ? Number(data.shipping) : 0;
     const total = data.total !== undefined ? Number(data.total) : 0;
-    const paymentMethod = (data.payment && data.payment.method) || data.paymentMethod || "RAZORPAY";
-    const paymentId = (data.payment && data.payment.razorpayPaymentId) || data.paymentId || data.razorpayPaymentId || "";
+    const paymentMethod = isCod ? "CASH ON DELIVERY" : ((data.payment && data.payment.method) || data.paymentMethod || "RAZORPAY");
+    const paymentId = (data.payment && data.payment.razorpayPaymentId) || data.paymentId || data.razorpayPaymentId || (isCod ? ("COD (Due: ₹" + total + ")") : "");
+    const courier = data.courier || (data.trackingId ? "Delhivery" : "");
+    const trackingId = data.trackingId || "";
 
     const row = [
       timestamp,
@@ -139,7 +144,9 @@ function doPost(e) {
       shipping,
       total,
       paymentMethod,
-      paymentId
+      paymentId,
+      courier,
+      trackingId
     ];
 
     sheet.appendRow(row);

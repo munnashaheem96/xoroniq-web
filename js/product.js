@@ -6,6 +6,7 @@
 import { getProductById, getProductBySlug, INITIAL_ESSENTIAL_KIT } from './firebase.js';
 import { formatCurrency, calculateDiscount, showToast, formatCategoryBadge } from './utils.js';
 import { addToCart } from './cart.js';
+import { trackViewContent } from './pixel.js';
 
 /**
  * Initialize Standalone Product Detail Page
@@ -32,6 +33,7 @@ export async function initProductDetailPage() {
   }
 
   renderProductDetails(product);
+  trackViewContent(product);
 }
 
 /**
@@ -95,6 +97,12 @@ function renderProductDetails(product) {
     } else {
       stockEl.innerHTML = `<span class="badge-status status-cancelled"><i class="bi bi-x-circle-fill"></i> OUT OF STOCK</span>`;
     }
+  }
+
+  // Delivery info
+  const deliveryInfoEl = document.getElementById('product-detail-delivery-info');
+  if (deliveryInfoEl) {
+    deliveryInfoEl.textContent = `Kerala Delivery: ₹60 (Rest of India: ₹80, Free > ₹2,500)`;
   }
 
   // Short & Long Descriptions

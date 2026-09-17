@@ -58,6 +58,7 @@ export const INITIAL_ESSENTIAL_KIT = {
   price: 1199,
   compareAtPrice: 1499,
   discount: 20,
+  deliveryFee: 80,
   stock: 50,
   sku: 'XOR-KIT-001',
   featured: true,
@@ -107,6 +108,7 @@ export const INITIAL_PRO_KIT = {
   price: 0,
   compareAtPrice: 0,
   discount: 0,
+  deliveryFee: 80,
   stock: 0,
   sku: 'XOR-KIT-PRO',
   featured: true,
@@ -145,6 +147,7 @@ export const INITIAL_ULTRA_KIT = {
   price: 0,
   compareAtPrice: 0,
   discount: 0,
+  deliveryFee: 100,
   stock: 0,
   sku: 'XOR-KIT-ULTRA',
   featured: true,
@@ -555,6 +558,25 @@ export async function updateOrderStatus(docId, newStatus) {
 }
 
 /**
+ * Update order tracking / dispatch details (Admin)
+ * @param {string} docId
+ * @param {Object} trackingData - { trackingId, courier, trackingUrl, orderStatus, ... }
+ */
+export async function updateOrderTracking(docId, trackingData) {
+  try {
+    const docRef = doc(db, 'orders', docId);
+    await updateDoc(docRef, {
+      ...trackingData,
+      updatedAt: serverTimestamp()
+    });
+    return true;
+  } catch (error) {
+    console.error('Error updating order tracking:', error);
+    throw error;
+  }
+}
+
+/**
  * Get metrics for Admin Dashboard
  */
 export async function getDashboardMetrics() {
@@ -670,16 +692,52 @@ export async function saveUserProfile(uid, data) {
 }
 
 export async function getUserOrders(email) {
+  if (!email) return [];
+  const cleanEmail = email.toLowerCase().trim();
   try {
-    const q = query(
+    const q1 = query(
       collection(db, 'orders'),
-      where('customerEmail', '==', email),
+      where('customer.email', '==', cleanEmail),
       orderBy('createdAt', 'desc')
     );
-    const snap = await getDocs(q);
-    return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    const snap1 = await getDocs(q1);
+    if (!snap1.empty) {
+      return snap1.docs.map(d => ({ id: d.id, ...d.data() }));
+    }
   } catch (e) {
-    console.warn('getUserOrders:', e);
+    // Continue to next attempt
+  }
+
+  try {
+    const q2 = query(
+      collection(db, 'orders'),
+      where('customerEmail', '==', cleanEmail),
+      orderBy('createdAt', 'desc')
+    );
+    const snap2 = await getDocs(q2);
+    if (!snap2.empty) {
+      return snap2.docs.map(d => ({ id: d.id, ...d.data() }));
+    }
+  } catch (e) {
+    // Continue to fallback
+  }
+
+  // Fallback client-side filter
+  try {
+    const all = await getDocs(collection(db, 'orders'));
+    return all.docs
+      .map(d => ({ id: d.id, ...d.data() }))
+      .filter(o => {
+        const orderEmail = (o.customer?.email || o.customerEmail || '').toLowerCase().trim();
+        return orderEmail === cleanEmail;
+      })
+      .sort((a, b) => {
+        const ta = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : new Date(a.createdAt || 0).getTime();
+        const tb = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : new Date(b.createdAt || 0).getTime();
+        return tb - ta;
+      });
+  } catch (err) {
+    console.warn('getUserOrders fallback error:', err);
     return [];
   }
 }

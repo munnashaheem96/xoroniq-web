@@ -17,12 +17,16 @@ import { updateCartBadges, renderOffcanvasCart, openCartDrawer, getCartTotals } 
 import { initSearch } from './search.js';
 import { showToast, formatCurrency } from './utils.js';
 import { initUserNavbar } from './user.js';
+import { initMetaPixel } from './pixel.js';
 
 document.addEventListener('DOMContentLoaded', () => {
   // Ensure page starts at top if not linking to anchor
   if (!window.location.hash) {
     window.scrollTo(0, 0);
   }
+
+  // Initialize Meta Ads (Meta Pixel)
+  initMetaPixel();
 
   // Initialize Core Animations & Motion
   initPreloader();

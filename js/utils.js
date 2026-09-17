@@ -25,26 +25,49 @@ export function calculateDiscount(price, comparePrice) {
 }
 
 /**
- * Check if a 6-digit pincode is near 676306 (Malappuram / Kerala 676xxx region or nearby 673 zone)
+ * Check if a given address, state, or pincode belongs to Kerala.
+ * All Kerala PIN codes start with 67, 68, or 69 (670001 - 695615).
+ * @param {string|number} pincode 
+ * @param {string} state 
+ * @param {string} city 
+ * @returns {boolean}
+ */
+export function isKeralaAddress(pincode = '', state = '', city = '') {
+  if (state) {
+    const s = String(state).trim().toLowerCase();
+    if (s === 'kerala' || s === 'kl' || s.includes('kerala')) return true;
+  }
+  if (pincode) {
+    const pinStr = String(pincode).trim().replace(/\D/g, '');
+    if (pinStr.length >= 2) {
+      const prefix = pinStr.substring(0, 2);
+      if (prefix === '67' || prefix === '68' || prefix === '69') {
+        return true;
+      }
+    }
+  }
+  if (city) {
+    const c = String(city).trim().toLowerCase();
+    const keralaCities = [
+      'kochi', 'cochin', 'ernakulam', 'calicut', 'kozhikode', 'trivandrum',
+      'thiruvananthapuram', 'thrissur', 'malappuram', 'kannur', 'kollam',
+      'palakkad', 'alappuzha', 'alleppey', 'kottayam', 'wayanad', 'kasaragod',
+      'idukki', 'pathanamthitta', 'tirurangadi', 'manjeri', 'perinthalmanna',
+      'tirur', 'ponnani', 'guruvayur', 'aluva', 'kothamangalam', 'perumbavoor'
+    ];
+    if (keralaCities.some(k => c.includes(k))) return true;
+  }
+  return false;
+}
+
+/**
+ * Check if a 6-digit pincode is near 676306 / in Kerala
  * @param {string|number} pincode 
  * @returns {boolean}
  */
 export function isNearLocalPincode(pincode) {
   if (!pincode) return false;
-  const pinStr = String(pincode).trim().replace(/\D/g, '');
-  if (pinStr.length !== 6) return false;
-
-  // Exact match 676306
-  if (pinStr === CONFIG.STORE.LOCAL_PINCODE_BASE || pinStr === '676306') return true;
-
-  // Malappuram / Tirurangadi / Calicut University zone (676xxx postal circle)
-  if (pinStr.startsWith('676')) return true;
-
-  // Directly adjoining pin codes in 673 zone (like Ramanattukara, Feroke, Calicut Univ border)
-  const nearby673 = ['673634', '673635', '673636', '673637', '673638', '673639', '673641', '673642', '673633'];
-  if (nearby673.includes(pinStr)) return true;
-
-  return false;
+  return isKeralaAddress(pincode);
 }
 
 /**

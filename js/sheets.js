@@ -67,7 +67,7 @@ export function formatOrderForSheets(orderData) {
   return {
     timestamp: timestampStr,
     orderId: orderData.orderId || `XOR-${Date.now().toString().slice(-6)}`,
-    status: orderData.orderStatus || 'Payment Confirmed',
+    status: orderData.orderStatus || (orderData.payment?.method === 'COD' ? 'Order Placed (COD)' : 'Payment Confirmed'),
     customerName: customer.name || '',
     customerPhone: customer.phone || '',
     customerEmail: customer.email || '',
@@ -79,9 +79,13 @@ export function formatOrderForSheets(orderData) {
     itemsCount: totalItemsCount,
     subtotal: Number(orderData.subtotal) || 0,
     shipping: Number(orderData.shipping) || 0,
+    codFee: Number(orderData.codFee || (orderData.payment?.method === 'COD' ? 20 : 0)),
     total: Number(orderData.total) || 0,
-    paymentMethod: payment.method || 'RAZORPAY',
-    paymentId: payment.razorpayPaymentId || payment.paymentId || ''
+    paymentMethod: payment.method === 'COD' ? 'CASH ON DELIVERY' : (payment.method || 'RAZORPAY'),
+    paymentId: payment.razorpayPaymentId || payment.paymentId || (payment.method === 'COD' ? `COD (Pay ₹${orderData.total})` : ''),
+    courier: orderData.courier || (orderData.trackingId ? 'Delhivery' : ''),
+    trackingId: orderData.trackingId || '',
+    trackingUrl: orderData.trackingUrl || (orderData.trackingId ? `https://www.delhivery.com/track/package/${orderData.trackingId}` : '')
   };
 }
 
@@ -204,7 +208,9 @@ export function exportOrdersToCSV(orders = []) {
     'Shipping (INR)',
     'Total (INR)',
     'Payment Method',
-    'Payment ID'
+    'Payment ID',
+    'Courier',
+    'Tracking ID / AWB'
   ];
 
   const escapeCSV = (val) => {
@@ -241,7 +247,9 @@ export function exportOrdersToCSV(orders = []) {
       escapeCSV(order.shipping || 0),
       escapeCSV(order.total || 0),
       escapeCSV(pay.method || 'RAZORPAY'),
-      escapeCSV(pay.razorpayPaymentId || '')
+      escapeCSV(pay.razorpayPaymentId || ''),
+      escapeCSV(order.courier || (order.trackingId ? 'Delhivery' : '')),
+      escapeCSV(order.trackingId || '')
     ].join(',');
   });
 

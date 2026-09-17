@@ -3,7 +3,7 @@
 // Customer Live Status Timeline & Admin Order Fulfillment
 // ==========================================================================
 
-import { getOrderById, searchOrders, getOrders, updateOrderStatus } from './firebase.js';
+import { getOrderById, searchOrders, getOrders, updateOrderStatus, updateOrderTracking } from './firebase.js';
 import { formatCurrency, formatDate, showToast } from './utils.js';
 import {
   exportOrdersToCSV,
@@ -77,16 +77,17 @@ export function initTrackingPage() {
   }
 
   function renderOrderTimeline(order) {
+    const isCodOrder = order.payment?.method === 'COD' || (order.orderStatus && order.orderStatus.includes('COD'));
     const statuses = [
-      'Order Placed',
-      'Payment Confirmed',
+      isCodOrder ? 'Order Placed (COD)' : 'Payment Confirmed',
       'Processing',
       'Shipped',
       'Delivered'
     ];
 
-    const currentStatus = order.orderStatus || 'Payment Confirmed';
-    const currentIndex = statuses.indexOf(currentStatus) > -1 ? statuses.indexOf(currentStatus) : 1;
+    const currentStatus = order.orderStatus || (isCodOrder ? 'Order Placed (COD)' : 'Payment Confirmed');
+    const currentIndex = statuses.indexOf(currentStatus) > -1 ? statuses.indexOf(currentStatus) : 0;
+    const trackingUrl = order.trackingUrl || (order.trackingId ? `https://www.delhivery.com/track/package/${order.trackingId}` : null);
 
     resultContainer.innerHTML = `
       <div class="glass-panel-heavy p-4 p-md-5">
@@ -100,6 +101,43 @@ export function initTrackingPage() {
             <span class="badge-status status-shipped fs-6 py-2 px-3">
               <i class="bi bi-geo-alt-fill me-1"></i> STATUS: ${currentStatus.toUpperCase()}
             </span>
+          </div>
+        </div>
+
+        <!-- Delhivery Live Shipping Tracker Card -->
+        <div class="p-4 rounded-4 mb-4 ${order.trackingId ? 'bg-white border border-secondary border-opacity-25 shadow-sm' : 'bg-surface-custom border border-secondary border-opacity-25'}">
+          <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+            <div>
+              <div class="d-flex align-items-center gap-2 mb-1">
+                <span class="badge bg-danger text-white px-2 py-1 small fw-bold">
+                  <i class="bi bi-truck me-1"></i> DELHIVERY EXPRESS
+                </span>
+                <span class="text-muted-custom small">Official Shipping Partner</span>
+              </div>
+              ${order.trackingId ? `
+                <div class="fs-5 text-black font-mono fw-bold mt-2 d-flex align-items-center gap-2 flex-wrap">
+                  <span>AWB: <strong>${order.trackingId}</strong></span>
+                  <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2 copy-awb-btn" data-awb="${order.trackingId}" title="Copy Delhivery AWB">
+                    <i class="bi bi-clipboard me-1"></i> Copy AWB
+                  </button>
+                </div>
+                <div class="text-muted-custom small mt-1">
+                  Your shipment is registered with Delhivery. Real-time courier transit, dispatch hubs, and live out-for-delivery milestones can be viewed directly on Delhivery.
+                </div>
+              ` : `
+                <div class="text-dark small mt-2">
+                  <i class="bi bi-clock-history text-accent me-1"></i> <strong>Awaiting Dispatch:</strong> Your order is being packed. Your Delhivery tracking AWB number will appear here the moment it leaves our fulfillment hub.
+                </div>
+              `}
+            </div>
+            ${order.trackingId ? `
+              <div>
+                <a href="${trackingUrl}" target="_blank" rel="noopener noreferrer" class="btn btn-x-primary px-4 py-2 d-inline-flex align-items-center gap-2 shadow-sm">
+                  <span>TRACK LIVE ON DELHIVERY</span>
+                  <i class="bi bi-box-arrow-up-right"></i>
+                </a>
+              </div>
+            ` : ''}
           </div>
         </div>
 
@@ -168,6 +206,22 @@ export function initTrackingPage() {
         </div>
       </div>
     `;
+
+    // Attach copy AWB listener
+    const copyBtn = resultContainer.querySelector('.copy-awb-btn');
+    if (copyBtn) {
+      copyBtn.addEventListener('click', async () => {
+        const awb = copyBtn.getAttribute('data-awb');
+        if (awb) {
+          try {
+            await navigator.clipboard.writeText(awb);
+            showToast(`Delhivery AWB ${awb} copied to clipboard!`, 'success');
+          } catch (e) {
+            showToast(`AWB: ${awb}`, 'info');
+          }
+        }
+      });
+    }
   }
 }
 
@@ -187,7 +241,7 @@ export async function initAdminOrdersPage() {
   async function loadOrders() {
     tableBody.innerHTML = `
       <tr>
-        <td colspan="7" class="text-center py-4">
+        <td colspan="8" class="text-center py-4">
           <div class="spinner-border text-accent spinner-border-sm"></div> Loading orders...
         </td>
       </tr>
@@ -198,7 +252,7 @@ export async function initAdminOrdersPage() {
       renderOrdersList();
     } catch (e) {
       console.error('Error fetching admin orders:', e);
-      tableBody.innerHTML = `<tr><td colspan="7" class="text-center py-4 text-danger">Failed to load orders.</td></tr>`;
+      tableBody.innerHTML = `<tr><td colspan="8" class="text-center py-4 text-danger">Failed to load orders.</td></tr>`;
     }
   }
 
@@ -216,7 +270,8 @@ export async function initAdminOrdersPage() {
         (o.orderId || '').toLowerCase().includes(searchTerm) ||
         (o.customer?.name || '').toLowerCase().includes(searchTerm) ||
         (o.customer?.phone || '').includes(searchTerm) ||
-        (o.customer?.email || '').toLowerCase().includes(searchTerm)
+        (o.customer?.email || '').toLowerCase().includes(searchTerm) ||
+        (o.trackingId || '').toLowerCase().includes(searchTerm)
       );
     }
 
@@ -225,7 +280,7 @@ export async function initAdminOrdersPage() {
     if (filtered.length === 0) {
       tableBody.innerHTML = `
         <tr>
-          <td colspan="7" class="text-center py-5 text-muted-custom">
+          <td colspan="8" class="text-center py-5 text-muted-custom">
             No orders found matching criteria.
           </td>
         </tr>
@@ -238,6 +293,8 @@ export async function initAdminOrdersPage() {
       if (order.orderStatus === 'Delivered') badgeClass = 'status-delivered';
       if (order.orderStatus === 'Shipped') badgeClass = 'status-shipped';
       if (order.orderStatus === 'Cancelled') badgeClass = 'status-cancelled';
+
+      const trackingUrl = order.trackingUrl || (order.trackingId ? `https://www.delhivery.com/track/package/${order.trackingId}` : null);
 
       return `
         <tr data-id="${order.id}">
@@ -255,12 +312,34 @@ export async function initAdminOrdersPage() {
           <td class="font-mono text-accent fw-bold">${formatCurrency(order.total)}</td>
           <td>
             <select class="form-select form-select-sm bg-white text-dark border order-status-select" data-id="${order.id}">
+              <option value="Order Placed (COD)" ${order.orderStatus === 'Order Placed (COD)' ? 'selected' : ''}>Order Placed (COD)</option>
               <option value="Payment Confirmed" ${order.orderStatus === 'Payment Confirmed' ? 'selected' : ''}>Payment Confirmed</option>
               <option value="Processing" ${order.orderStatus === 'Processing' ? 'selected' : ''}>Processing</option>
               <option value="Shipped" ${order.orderStatus === 'Shipped' ? 'selected' : ''}>Shipped</option>
               <option value="Delivered" ${order.orderStatus === 'Delivered' ? 'selected' : ''}>Delivered</option>
               <option value="Cancelled" ${order.orderStatus === 'Cancelled' ? 'selected' : ''}>Cancelled</option>
             </select>
+          </td>
+          <td>
+            ${order.trackingId ? `
+              <div class="d-flex flex-column gap-1">
+                <div class="d-flex align-items-center gap-1">
+                  <span class="badge bg-danger text-white font-mono px-2 py-1" style="font-size: 0.72rem; letter-spacing: 0.5px;">
+                    <i class="bi bi-truck me-1"></i>${order.trackingId}
+                  </span>
+                  <a href="${trackingUrl}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-outline-secondary py-0 px-1" title="Track Live on Delhivery">
+                    <i class="bi bi-box-arrow-up-right" style="font-size: 0.72rem;"></i>
+                  </a>
+                </div>
+                <button type="button" class="btn btn-link btn-sm text-accent p-0 text-start open-tracking-modal-btn" data-id="${order.id}" style="font-size: 0.72rem; text-decoration: none;">
+                  <i class="bi bi-pencil-square me-1"></i>Edit AWB
+                </button>
+              </div>
+            ` : `
+              <button type="button" class="btn btn-outline-primary btn-sm py-1 px-2 open-tracking-modal-btn" data-id="${order.id}" style="font-size: 0.75rem;">
+                <i class="bi bi-truck me-1"></i> Add Delhivery AWB
+              </button>
+            `}
           </td>
           <td>
             <div class="d-flex align-items-center gap-1">
@@ -281,12 +360,38 @@ export async function initAdminOrdersPage() {
       select.addEventListener('change', async (e) => {
         const id = select.getAttribute('data-id');
         const newStatus = e.target.value;
+        const order = allOrders.find(o => o.id === id);
+
+        if (newStatus === 'Shipped' && (!order || !order.trackingId)) {
+          // If marking Shipped without AWB, open tracking modal
+          if (order) openTrackingModal(order);
+          return;
+        }
+
         try {
           await updateOrderStatus(id, newStatus);
+          if (order) {
+            order.orderStatus = newStatus;
+            try {
+              await sendOrderToGoogleSheets(order);
+            } catch (sheetErr) {
+              console.warn('Sheets sync on status update:', sheetErr);
+            }
+          }
           showToast(`Order status updated to ${newStatus}`, 'success');
         } catch (err) {
           showToast('Failed to update status', 'error');
         }
+      });
+    });
+
+    // Attach Delhivery AWB modal listeners
+    tableBody.querySelectorAll('.open-tracking-modal-btn').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const id = btn.getAttribute('data-id');
+        const order = allOrders.find(o => o.id === id);
+        if (order) openTrackingModal(order);
       });
     });
 
@@ -295,7 +400,7 @@ export async function initAdminOrdersPage() {
       btn.addEventListener('click', () => {
         const id = btn.getAttribute('data-id');
         const order = allOrders.find(o => o.id === id);
-        if (order) openAdminOrderModal(order);
+        if (order) openAdminOrderModal(order, openTrackingModal);
       });
     });
 
@@ -325,6 +430,85 @@ export async function initAdminOrdersPage() {
           btn.innerHTML = originalHtml;
         }
       });
+    });
+  }
+
+  // -------------------------------------------------------------
+  // Delhivery Tracking Modal Handling
+  // -------------------------------------------------------------
+  const trackingModalEl = document.getElementById('trackingModal');
+  const trackingForm = document.getElementById('delhivery-tracking-form');
+  const trackingOrderIdInput = document.getElementById('modal-tracking-order-id');
+  const trackingOrderDisplay = document.getElementById('modal-tracking-order-display');
+  const trackingAwbInput = document.getElementById('modal-tracking-awb-input');
+
+  function openTrackingModal(order) {
+    if (!trackingModalEl) return;
+    if (trackingOrderIdInput) trackingOrderIdInput.value = order.id || '';
+    if (trackingOrderDisplay) trackingOrderDisplay.value = order.orderId ? `#${order.orderId}` : (order.id || '');
+    if (trackingAwbInput) {
+      trackingAwbInput.value = order.trackingId || '';
+      setTimeout(() => trackingAwbInput.focus(), 300);
+    }
+    const bsModal = window.bootstrap.Modal.getOrCreateInstance(trackingModalEl);
+    bsModal.show();
+  }
+
+  if (trackingForm) {
+    trackingForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const docId = trackingOrderIdInput ? trackingOrderIdInput.value : '';
+      const awb = trackingAwbInput ? trackingAwbInput.value.trim() : '';
+
+      if (!docId || !awb) {
+        showToast('Please enter a valid Delhivery tracking/AWB number', 'warning');
+        return;
+      }
+
+      const saveBtn = document.getElementById('modal-tracking-save-btn');
+      if (saveBtn) {
+        saveBtn.disabled = true;
+        saveBtn.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span> Saving...`;
+      }
+
+      try {
+        const trackingData = {
+          trackingId: awb,
+          courier: 'Delhivery',
+          courierName: 'Delhivery Express',
+          trackingUrl: `https://www.delhivery.com/track/package/${awb}`,
+          orderStatus: 'Shipped',
+          shippedAt: new Date().toISOString()
+        };
+
+        await updateOrderTracking(docId, trackingData);
+
+        const order = allOrders.find(o => o.id === docId);
+        if (order) {
+          Object.assign(order, trackingData);
+          try {
+            await sendOrderToGoogleSheets(order);
+          } catch (sheetErr) {
+            console.warn('Sheets sync on tracking update:', sheetErr);
+          }
+        }
+
+        showToast(`Delhivery AWB ${awb} saved & order marked as Shipped!`, 'success');
+
+        if (trackingModalEl) {
+          const bsModal = window.bootstrap.Modal.getInstance(trackingModalEl);
+          if (bsModal) bsModal.hide();
+        }
+
+        renderOrdersList();
+      } catch (err) {
+        showToast('Failed to save Delhivery tracking: ' + err.message, 'error');
+      } finally {
+        if (saveBtn) {
+          saveBtn.disabled = false;
+          saveBtn.innerHTML = `<i class="bi bi-check2-circle me-1"></i> Save & Mark Shipped`;
+        }
+      }
     });
   }
 
@@ -460,7 +644,7 @@ export async function initAdminOrdersPage() {
 /**
  * Open Detailed Order Modal for Admin
  */
-function openAdminOrderModal(order) {
+function openAdminOrderModal(order, openTrackingModalCallback) {
   let modalEl = document.getElementById('admin-order-modal');
   if (!modalEl) {
     const modalHtml = `
@@ -501,6 +685,42 @@ function openAdminOrderModal(order) {
       </div>
     </div>
 
+    <!-- Delhivery Courier & Tracking Status Card -->
+    <div class="p-3 bg-surface-custom rounded border border-secondary border-opacity-25 mb-4">
+      <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+        <div>
+          <div class="d-flex align-items-center gap-2 mb-1">
+            <span class="badge bg-danger text-white px-2 py-1 small fw-bold">
+              <i class="bi bi-truck me-1"></i> DELHIVERY EXPRESS
+            </span>
+            <span class="text-muted-custom small">Fulfillment & Courier Partner</span>
+          </div>
+          ${order.trackingId ? `
+            <div class="fs-6 font-mono fw-bold text-black mt-1">
+              AWB: <span>${order.trackingId}</span>
+            </div>
+            <div class="text-muted-custom small">
+              Live tracking active on customer portal and Google Sheets.
+            </div>
+          ` : `
+            <div class="text-dark small mt-1">
+              <i class="bi bi-exclamation-circle text-warning me-1"></i> Awaiting dispatch. Enter Delhivery tracking AWB once parcel is packed.
+            </div>
+          `}
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          ${order.trackingId ? `
+            <a href="https://www.delhivery.com/track/package/${order.trackingId}" target="_blank" rel="noopener noreferrer" class="btn btn-x-outline btn-sm">
+              <i class="bi bi-box-arrow-up-right me-1"></i> Track on Delhivery
+            </a>
+          ` : ''}
+          <button type="button" class="btn btn-x-primary btn-sm admin-modal-tracking-btn">
+            <i class="bi bi-truck me-1"></i> ${order.trackingId ? 'Update AWB' : 'Enter Delhivery AWB'}
+          </button>
+        </div>
+      </div>
+    </div>
+
     <h6 class="font-heading text-black fw-bold mb-2">ORDERED ITEMS</h6>
     <div class="table-responsive mb-4">
       <table class="table-custom-dark w-100">
@@ -532,8 +752,28 @@ function openAdminOrderModal(order) {
       </table>
     </div>
 
+    <div class="p-3 bg-surface-custom rounded border border-secondary border-opacity-25 mb-3">
+      <div class="d-flex justify-content-between text-silver small mb-1">
+        <span>Subtotal</span>
+        <span class="font-mono text-black fw-bold">${formatCurrency(order.subtotal || 0)}</span>
+      </div>
+      <div class="d-flex justify-content-between text-silver small mb-1">
+        <span>Shipping / Delivery Cash</span>
+        <span class="font-mono text-black fw-bold">${Number(order.shipping) === 0 ? 'FREE' : formatCurrency(order.shipping)}</span>
+      </div>
+      ${(order.codFee || order.payment?.method === 'COD') ? `
+        <div class="d-flex justify-content-between text-silver small mb-1">
+          <span>Cash on Delivery (COD) Extra Fee</span>
+          <span class="font-mono text-accent fw-bold">+${formatCurrency(order.codFee || 20)}</span>
+        </div>
+      ` : ''}
+    </div>
+
     <div class="d-flex flex-wrap justify-content-between align-items-center pt-3 border-top border-secondary border-opacity-25 font-heading gap-2">
-      <div class="text-muted-custom">Payment ID: <span class="font-mono text-black">${order.payment?.razorpayPaymentId || 'N/A'}</span></div>
+      <div class="text-muted-custom small">
+        Payment: ${order.payment?.method === 'COD' ? '<span class="badge bg-warning bg-opacity-25 text-dark border border-warning">CASH ON DELIVERY (+₹20)</span>' : '<span class="badge bg-success bg-opacity-25 text-success">PREPAID (RAZORPAY)</span>'}
+        <span class="ms-2">Ref: <span class="font-mono text-black">${order.payment?.razorpayPaymentId || (order.payment?.method === 'COD' ? 'COD - Collect on Delivery' : 'N/A')}</span></span>
+      </div>
       <div class="d-flex align-items-center gap-3">
         <button class="btn btn-x-outline btn-sm font-sans" id="modal-push-sheet-btn">
           <i class="bi bi-file-earmark-spreadsheet text-success me-1"></i> Push to Google Sheet
@@ -560,6 +800,17 @@ function openAdminOrderModal(order) {
     });
   }
 
-  const bsModal = new window.bootstrap.Modal(modalEl);
+  const modalTrackingBtn = modalBody.querySelector('.admin-modal-tracking-btn');
+  if (modalTrackingBtn && openTrackingModalCallback) {
+    modalTrackingBtn.addEventListener('click', () => {
+      const bsModalInstance = window.bootstrap.Modal.getInstance(modalEl);
+      if (bsModalInstance) bsModalInstance.hide();
+      setTimeout(() => {
+        openTrackingModalCallback(order);
+      }, 350);
+    });
+  }
+
+  const bsModal = window.bootstrap.Modal.getOrCreateInstance(modalEl);
   bsModal.show();
 }

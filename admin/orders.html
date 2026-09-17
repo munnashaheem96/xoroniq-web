@@ -71,6 +71,7 @@
           <div class="d-flex align-items-center flex-wrap gap-2">
             <select id="admin-orders-filter" class="form-select form-control-custom py-2 px-3 small" style="width: auto;">
               <option value="ALL">All Statuses</option>
+              <option value="Order Placed (COD)">Order Placed (COD)</option>
               <option value="Payment Confirmed">Payment Confirmed</option>
               <option value="Processing">Processing</option>
               <option value="Shipped">Shipped</option>
@@ -99,6 +100,7 @@
                   <th>Items</th>
                   <th>Total</th>
                   <th>Status</th>
+                  <th>Delhivery Tracking / AWB</th>
                   <th>Actions</th>
                 </tr>
               </thead>
@@ -111,6 +113,44 @@
 
       </div>
     </main>
+  </div>
+
+  <!-- Delhivery Tracking / AWB Modal -->
+  <div class="modal fade" id="trackingModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content modal-content-custom">
+        <div class="modal-header border-secondary border-opacity-25">
+          <h5 class="modal-title font-heading text-black fw-bold d-flex align-items-center gap-2">
+            <i class="bi bi-truck text-accent fs-4"></i> DELHIVERY DISPATCH DETAILS
+          </h5>
+          <button type="button" class="btn-close-custom" data-bs-dismiss="modal"><i class="bi bi-x-lg"></i></button>
+        </div>
+        <div class="modal-body p-4">
+          <form id="delhivery-tracking-form">
+            <input type="hidden" id="modal-tracking-order-id">
+            <div class="mb-3">
+              <label class="form-label font-heading text-black small fw-bold">ORDER ID</label>
+              <input type="text" id="modal-tracking-order-display" class="form-control form-control-custom bg-light font-mono fw-bold" readonly>
+            </div>
+            <div class="mb-3">
+              <label class="form-label font-heading text-black small fw-bold">COURIER PARTNER</label>
+              <input type="text" class="form-control form-control-custom bg-light" value="Delhivery Express" readonly>
+            </div>
+            <div class="mb-3">
+              <label class="form-label font-heading text-black small fw-bold">DELHIVERY AWB / TRACKING NUMBER *</label>
+              <input type="text" id="modal-tracking-awb-input" class="form-control form-control-custom font-mono" placeholder="e.g. 143829471928" required>
+              <div class="text-muted-custom small mt-1">Copy & paste from Delhivery merchant panel or shipping label barcode.</div>
+            </div>
+            <div class="d-flex justify-content-end gap-2 mt-4">
+              <button type="button" class="btn btn-x-outline btn-sm" data-bs-dismiss="modal">Cancel</button>
+              <button type="submit" class="btn btn-x-primary btn-sm" id="modal-tracking-save-btn">
+                <i class="bi bi-check2-circle me-1"></i> Save & Mark Shipped
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- Google Sheets Integration Modal -->

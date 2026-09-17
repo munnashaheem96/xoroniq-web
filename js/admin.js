@@ -170,6 +170,11 @@ export async function initAdminProductsPage() {
             ${p.compareAtPrice > p.price ? `<div class="text-muted-custom text-decoration-line-through small">${formatCurrency(p.compareAtPrice)}</div>` : ''}
           </td>
           <td>
+            <span class="badge bg-light text-dark border">
+              <i class="bi bi-truck text-accent me-1"></i>₹${p.deliveryFee !== undefined ? p.deliveryFee : 80}
+            </span>
+          </td>
+          <td>
             <span class="badge ${p.stock > 10 ? 'bg-success bg-opacity-25 text-success' : p.stock > 0 ? 'bg-warning bg-opacity-25 text-warning' : 'bg-danger bg-opacity-25 text-danger'}">
               ${p.stock} Units
             </span>
@@ -307,15 +312,19 @@ export async function initAdminProductsPage() {
                       </div>
                     </div>
 
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                       <label class="form-label font-heading text-black small fw-bold">PRICE (₹) *</label>
                       <input type="number" id="p-price" class="form-control form-control-custom" required min="0" placeholder="1199">
                     </div>
-                    <div class="col-md-4">
-                      <label class="form-label font-heading text-black small fw-bold">COMPARE PRICE (₹)</label>
+                    <div class="col-md-3">
+                      <label class="form-label font-heading text-black small fw-bold">COMPARE (₹)</label>
                       <input type="number" id="p-compare-price" class="form-control form-control-custom" min="0" placeholder="1499">
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
+                      <label class="form-label font-heading text-black small fw-bold">DELIVERY CASH (₹) *</label>
+                      <input type="number" id="p-delivery-fee" class="form-control form-control-custom" required min="0" placeholder="80" value="80">
+                    </div>
+                    <div class="col-md-3">
                       <label class="form-label font-heading text-black small fw-bold">STOCK UNITS *</label>
                       <input type="number" id="p-stock" class="form-control form-control-custom" required min="0" value="50">
                     </div>
@@ -442,6 +451,7 @@ export async function initAdminProductsPage() {
     const nameInp = document.getElementById('p-name');
     const priceInp = document.getElementById('p-price');
     const compPriceInp = document.getElementById('p-compare-price');
+    const deliveryFeeInp = document.getElementById('p-delivery-fee');
     const stockInp = document.getElementById('p-stock');
     const skuInp = document.getElementById('p-sku');
     const activeInp = document.getElementById('p-active');
@@ -473,6 +483,7 @@ export async function initAdminProductsPage() {
 
       priceInp.value = product.price || '';
       compPriceInp.value = product.compareAtPrice || '';
+      if (deliveryFeeInp) deliveryFeeInp.value = product.deliveryFee !== undefined ? product.deliveryFee : 80;
       stockInp.value = product.stock !== undefined ? product.stock : 50;
       skuInp.value = product.sku || '';
       activeInp.checked = product.active !== false;
@@ -488,6 +499,7 @@ export async function initAdminProductsPage() {
       form.reset();
       activeInp.checked = true;
       featuredInp.checked = false;
+      if (deliveryFeeInp) deliveryFeeInp.value = 80;
       
       // Default to both Car and Bike care
       document.querySelectorAll('.p-category-cb').forEach(cb => {
@@ -539,6 +551,7 @@ export async function initAdminProductsPage() {
           categories: selectedCategories,
           price: parseFloat(priceInp.value) || 0,
           compareAtPrice: parseFloat(compPriceInp.value) || 0,
+          deliveryFee: parseFloat(deliveryFeeInp?.value) >= 0 ? parseFloat(deliveryFeeInp.value) : 80,
           stock: parseInt(stockInp.value) || 0,
           sku: skuInp.value.trim() || generateSku(selectedCategories, nameInp.value),
           active: activeInp.checked,

@@ -3,11 +3,27 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>My Profile | XORONIQ Car Care</title>
-  <meta name="description" content="Manage your XORONIQ account, view order history, and update your profile.">
-  <meta name="robots" content="noindex">
+  <title>Customer Dashboard &amp; My Garage | XORONIQ Car Care</title>
+  <meta name="description" content="Manage your XORONIQ detailing account, track live Delhivery dispatches, configure your garage, and update saved addresses.">
+  <meta name="robots" content="noindex, nofollow">
   <link rel="icon" type="image/png" href="images/logo/logo.PNG">
 
+  <!-- Meta Pixel Code -->
+  <script>
+  !function(f,b,e,v,n,t,s)
+  {if(f.fbq)return;n=f.fbq=function(){n.callMethod?
+  n.callMethod.apply(n,arguments):n.queue.push(arguments)};
+  if(!f._fbq)f._fbq=n;n.push=n;n.loaded=!0;n.version='2.0';
+  n.queue=[];t=b.createElement(e);t.async=!0;
+  t.src=v;s=b.getElementsByTagName(e)[0];
+  s.parentNode.insertBefore(t,s)}(window, document,'script',
+  'https://connect.facebook.net/en_US/fbevents.js');
+  fbq('init', '1588128035519008');
+  fbq('track', 'PageView');
+  </script>
+  <!-- End Meta Pixel Code -->
+
+  <!-- Fonts & CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
   <link rel="stylesheet" href="css/style.css">
@@ -15,136 +31,416 @@
   <link rel="stylesheet" href="css/responsive.css">
   <link rel="stylesheet" href="css/auth.css">
 </head>
-<body>
+<body class="profile-page-body">
 
-  <!-- ── NAVBAR ── -->
-  <nav class="navbar navbar-expand-lg xoroniq-navbar">
+  <!-- Meta Pixel Fallback -->
+  <noscript><img height="1" width="1" style="display:none"
+  src="https://www.facebook.com/tr?id=1588128035519008&ev=PageView&noscript=1"
+  /></noscript>
+
+  <!-- Top Announcement Bar -->
+  <div class="py-2 text-center text-black small fw-bold" style="background: linear-gradient(90deg, #e0f2fe 0%, #f0fdf4 50%, #e0f2fe 100%); border-bottom: 1px solid rgba(2, 132, 199, 0.2); letter-spacing: 0.05em; font-family: var(--x-font-heading); font-size: 0.78rem;">
+    <span class="text-accent me-1">⚡ SPECIAL OFFER:</span> FREE PAN-INDIA SHIPPING ON ORDERS ABOVE ₹2,500 • ALL KERALA: ₹60 • PRO & ULTRA KITS LAUNCHING SOON
+  </div>
+
+  <!-- Main Navbar -->
+  <nav class="navbar navbar-expand-lg xoroniq-navbar bg-white border-bottom border-secondary border-opacity-25 sticky-top">
     <div class="container container-custom">
       <a class="navbar-brand d-flex align-items-center gap-2" href="index.html">
-        <img src="images/logo/logo.PNG" alt="XORONIQ" class="nav-brand-logo" onerror="this.style.display='none';">
+        <img src="images/logo/logo.PNG" alt="XORONIQ" class="nav-brand-logo" onerror="this.style.display='none'; document.getElementById('text-fallback-logo').style.display='inline';">
+        <span id="text-fallback-logo" class="nav-brand-text" style="display: none;">XORONIQ<span class="dot"></span></span>
       </a>
-      <div class="d-flex align-items-center gap-2 ms-auto">
-        <a href="index.html" class="btn btn-x-outline-accent btn-sm">← Back to Store</a>
+
+      <!-- Desktop Nav Links -->
+      <div class="collapse navbar-collapse" id="navbarMain">
+        <ul class="navbar-nav mx-auto mb-2 mb-lg-0">
+          <li class="nav-item"><a class="nav-link" href="index.html">Home</a></li>
+          <li class="nav-item"><a class="nav-link" href="shop.html">Shop Arsenal</a></li>
+          <li class="nav-item"><a class="nav-link" href="index.html#essentials">Essentials</a></li>
+          <li class="nav-item"><a class="nav-link" href="about.html">Brand Atelier</a></li>
+          <li class="nav-item"><a class="nav-link" href="contact.html">Concierge</a></li>
+        </ul>
+      </div>
+
+      <!-- Right Controls -->
+      <div class="d-flex align-items-center gap-3">
+        <a href="shop.html" class="btn btn-x-outline-accent btn-sm d-none d-sm-inline-flex">
+          <i class="bi bi-cart3 me-1"></i> Store Arsenal
+        </a>
+        <a href="cart.html" class="btn-icon position-relative" title="Shopping Cart">
+          <i class="bi bi-bag"></i>
+          <span class="badge-count badge-cart-count" style="display: none;">0</span>
+        </a>
         <span class="user-nav-icon-wrap"></span>
       </div>
     </div>
   </nav>
 
-  <!-- ── PROFILE HERO ── -->
+  <!-- ── VIP DRIVER LOUNGE & HERO HEADER ── -->
   <section class="profile-hero-section">
     <div class="container container-custom">
       <div class="profile-hero-card">
-        <div class="profile-avatar-wrap">
-          <div class="profile-avatar-circle" id="profile-avatar">?</div>
+        
+        <!-- User Identity Block -->
+        <div class="profile-user-group">
+          <div class="profile-avatar-circle" id="profile-avatar">
+            <span class="spinner-border spinner-border-sm text-white"></span>
+          </div>
+          <div>
+            <div class="d-flex align-items-center gap-2 flex-wrap mb-1">
+              <h1 class="profile-display-name mb-0" id="profile-name">Loading Profile...</h1>
+              <span class="profile-tier-badge">
+                <i class="bi bi-shield-check"></i> VIP ENTHUSIAST
+              </span>
+            </div>
+            <div class="d-flex align-items-center gap-2 flex-wrap mt-1">
+              <span class="profile-email-badge" id="profile-email">
+                <i class="bi bi-envelope"></i> -
+              </span>
+              <span class="text-white-50 small" id="profile-since">Member</span>
+              <span class="badge bg-dark bg-opacity-50 text-light border border-secondary border-opacity-25" id="profile-garage-chip">
+                <i class="bi bi-car-front me-1"></i> <span id="profile-garage-chip-text">No vehicle set</span>
+              </span>
+            </div>
+          </div>
         </div>
-        <div class="profile-hero-info">
-          <h1 class="profile-display-name" id="profile-name">Loading...</h1>
-          <p class="profile-display-email" id="profile-email"></p>
-          <p class="profile-display-since" id="profile-since"></p>
+
+        <!-- Quick Actions -->
+        <div class="d-flex align-items-center gap-2">
+          <a href="shop.html" class="btn btn-x-primary btn-sm px-3 shadow-sm">
+            <i class="bi bi-bag-plus me-1"></i> Order Detailing Kit
+          </a>
+          <button class="btn btn-outline-light btn-sm px-3" id="profile-signout-btn" title="Sign out of XORONIQ">
+            <i class="bi bi-box-arrow-right me-1"></i> Sign Out
+          </button>
         </div>
-        <button class="btn btn-x-outline-accent btn-sm ms-auto" id="profile-signout-btn">
-          <i class="bi bi-box-arrow-right me-1"></i> Sign Out
-        </button>
+
       </div>
     </div>
   </section>
 
-  <!-- ── MAIN CONTENT ── -->
-  <main class="section-padding bg-alt">
-    <div class="container container-custom">
-      <div class="row g-4">
+  <!-- ── 4 KPI STAT COUNTERS ── -->
+  <div class="container container-custom profile-stats-row mb-4">
+    <div class="row g-3">
+      <div class="col-6 col-md-3">
+        <div class="profile-stat-card">
+          <div class="profile-stat-icon">
+            <i class="bi bi-bag-check-fill"></i>
+          </div>
+          <div>
+            <div class="profile-stat-val" id="stat-total-orders">0</div>
+            <div class="profile-stat-lbl">Orders Placed</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="profile-stat-card">
+          <div class="profile-stat-icon icon-amber">
+            <i class="bi bi-truck"></i>
+          </div>
+          <div>
+            <div class="profile-stat-val" id="stat-active-orders">0</div>
+            <div class="profile-stat-lbl">In Transit</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="profile-stat-card">
+          <div class="profile-stat-icon icon-green">
+            <i class="bi bi-currency-rupee"></i>
+          </div>
+          <div>
+            <div class="profile-stat-val font-mono" id="stat-total-spent">₹0</div>
+            <div class="profile-stat-lbl">Total Detailing</div>
+          </div>
+        </div>
+      </div>
+      <div class="col-6 col-md-3">
+        <div class="profile-stat-card">
+          <div class="profile-stat-icon icon-purple">
+            <i class="bi bi-gift-fill"></i>
+          </div>
+          <div>
+            <div class="profile-stat-val text-success" style="font-size: 1.15rem;">FREE &gt; ₹2,500</div>
+            <div class="profile-stat-lbl">Delivery Tier</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
 
-        <!-- ── EDIT PROFILE ── -->
-        <div class="col-lg-5">
-          <div class="profile-section-card">
-            <div class="profile-section-header">
-              <i class="bi bi-person-gear me-2 text-accent"></i>
-              <h2 class="profile-section-title">Edit Profile</h2>
+  <!-- ── MAIN DASHBOARD CONTAINER ── -->
+  <main class="pb-5">
+    <div class="container container-custom">
+
+      <!-- Navigation Tabs -->
+      <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+        <div class="profile-nav-pills" id="profile-tabs" role="tablist">
+          <button class="profile-nav-pill-btn active" id="tab-btn-orders" data-target="panel-orders">
+            <i class="bi bi-box-seam"></i> Orders &amp; Live Tracking
+            <span class="badge bg-white text-dark ms-1 rounded-pill" id="orders-tab-count">0</span>
+          </button>
+          <button class="profile-nav-pill-btn" id="tab-btn-garage" data-target="panel-garage">
+            <i class="bi bi-car-front"></i> My Garage
+          </button>
+          <button class="profile-nav-pill-btn" id="tab-btn-address" data-target="panel-address">
+            <i class="bi bi-geo-alt"></i> Saved Address
+          </button>
+          <button class="profile-nav-pill-btn" id="tab-btn-settings" data-target="panel-settings">
+            <i class="bi bi-person-gear"></i> Account Settings
+          </button>
+        </div>
+
+        <a href="tracking.html" class="btn btn-x-outline btn-sm font-sans" title="Quick Shipment Lookup">
+          <i class="bi bi-search me-1"></i> Track Any AWB
+        </a>
+      </div>
+
+      <!-- ── TAB 1: ORDERS & DELHIVERY LIVE TRACKING ── -->
+      <div class="profile-content-card mb-4" id="panel-orders">
+        <div class="profile-panel-header">
+          <div>
+            <h2 class="profile-panel-title">
+              <i class="bi bi-bag-check text-accent"></i> Order History &amp; Dispatch Tracking
+            </h2>
+            <div class="text-muted-custom small mt-1">
+              Live updates syncing via official Delhivery Express courier network.
             </div>
-            <form id="profile-edit-form" novalidate>
-              <div class="auth-field-group">
-                <label class="auth-label" for="profile-name-input">Full Name</label>
-                <div class="auth-input-wrap">
-                  <i class="bi bi-person auth-input-icon"></i>
-                  <input type="text" id="profile-name-input" class="auth-input" placeholder="Your full name">
-                </div>
-              </div>
-              <div class="auth-field-group">
-                <label class="auth-label" for="profile-phone">Phone Number</label>
-                <div class="auth-input-wrap">
-                  <i class="bi bi-telephone auth-input-icon"></i>
-                  <input type="tel" id="profile-phone" class="auth-input" placeholder="+91 XXXXXXXXXX">
-                </div>
-              </div>
-              <div class="auth-field-group">
-                <label class="auth-label" for="profile-city">City</label>
-                <div class="auth-input-wrap">
-                  <i class="bi bi-geo-alt auth-input-icon"></i>
-                  <input type="text" id="profile-city" class="auth-input" placeholder="Your city">
-                </div>
-              </div>
-              <div class="auth-field-group">
-                <label class="auth-label" for="profile-vehicleModel">Vehicle Make & Model</label>
-                <div class="auth-input-wrap">
-                  <i class="bi bi-car-front auth-input-icon"></i>
-                  <input type="text" id="profile-vehicleModel" class="auth-input" placeholder="e.g. Hyundai Creta, RE Meteor 350">
-                </div>
-              </div>
-              <div class="auth-field-group">
-                <label class="auth-label">Vehicle Type</label>
-                <div class="vehicle-type-selector">
-                  <label class="vehicle-type-option">
-                    <input type="radio" name="editVehicleType" value="Car" checked>
-                    <span><i class="bi bi-car-front me-1"></i>Car</span>
-                  </label>
-                  <label class="vehicle-type-option">
-                    <input type="radio" name="editVehicleType" value="Bike">
-                    <span><i class="bi bi-bicycle me-1"></i>Bike</span>
-                  </label>
-                  <label class="vehicle-type-option">
-                    <input type="radio" name="editVehicleType" value="Both">
-                    <span><i class="bi bi-collection me-1"></i>Both</span>
-                  </label>
-                </div>
-              </div>
-              <button type="submit" class="btn btn-x-primary w-100" id="profile-save-btn">
-                SAVE CHANGES <i class="bi bi-check2 ms-2"></i>
-              </button>
-            </form>
+          </div>
+          <!-- Filter pills -->
+          <div class="d-flex align-items-center gap-2">
+            <button class="order-filter-btn active" data-filter="ALL">All Orders</button>
+            <button class="order-filter-btn" data-filter="ACTIVE">In Transit</button>
+            <button class="order-filter-btn" data-filter="DELIVERED">Delivered</button>
           </div>
         </div>
 
-        <!-- ── MY ORDERS ── -->
-        <div class="col-lg-7" id="profile-orders-section">
-          <div class="profile-section-card">
-            <div class="profile-section-header">
-              <i class="bi bi-bag-check me-2 text-accent"></i>
-              <h2 class="profile-section-title">My Orders</h2>
+        <div id="profile-orders-list">
+          <div class="text-center py-5">
+            <div class="spinner-border text-accent mb-3" role="status"></div>
+            <p class="text-muted-custom small">Loading your orders and live dispatches...</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- ── TAB 2: MY GARAGE ── -->
+      <div class="profile-content-card mb-4" id="panel-garage" style="display: none;">
+        <div class="profile-panel-header">
+          <div>
+            <h2 class="profile-panel-title">
+              <i class="bi bi-car-front text-accent"></i> My Detailing Garage
+            </h2>
+            <div class="text-muted-custom small mt-1">
+              Configure your vehicle ride so XORONIQ detailing specialists can tailor application protocols.
             </div>
-            <div id="profile-orders-list">
-              <div class="text-center py-5">
-                <span class="spinner-border text-accent"></span>
+          </div>
+        </div>
+
+        <form id="garage-edit-form">
+          <label class="form-label font-heading text-black fw-bold small mb-2">PRIMARY VEHICLE CATEGORY</label>
+          <div class="garage-vehicle-type-cards">
+            <label class="garage-type-card">
+              <input type="radio" name="garageVehicleType" value="Car" checked>
+              <div class="garage-type-inner">
+                <i class="bi bi-car-front"></i>
+                <div class="garage-type-title">Car / SUV / Sedan</div>
+                <div class="text-muted-custom" style="font-size: 0.72rem;">Ceramic Foam, Iron Off, Interior Shield</div>
+              </div>
+            </label>
+            <label class="garage-type-card">
+              <input type="radio" name="garageVehicleType" value="Bike">
+              <div class="garage-type-inner">
+                <i class="bi bi-bicycle"></i>
+                <div class="garage-type-title">Motorcycle / Superbike</div>
+                <div class="text-muted-custom" style="font-size: 0.72rem;">High Gloss Repel, Engine Bay Polish</div>
+              </div>
+            </label>
+            <label class="garage-type-card">
+              <input type="radio" name="garageVehicleType" value="Both">
+              <div class="garage-type-inner">
+                <i class="bi bi-collection"></i>
+                <div class="garage-type-title">Multi-Vehicle Stable</div>
+                <div class="text-muted-custom" style="font-size: 0.72rem;">Complete Arsenal Pro Coverage</div>
+              </div>
+            </label>
+          </div>
+
+          <div class="row g-3 mb-4">
+            <div class="col-md-7">
+              <label class="form-label font-heading text-black fw-bold small">VEHICLE MAKE &amp; MODEL *</label>
+              <div class="auth-input-wrap">
+                <i class="bi bi-speedometer2 auth-input-icon"></i>
+                <input type="text" id="garage-vehicle-model" class="auth-input" placeholder="e.g. BMW 330Li, Hyundai Creta, RE Continental GT 650">
+              </div>
+              <div class="text-muted-custom small mt-1">Display badge shown across your VIP order receipts.</div>
+            </div>
+            <div class="col-md-5">
+              <label class="form-label font-heading text-black fw-bold small">COLOR &amp; FINISH</label>
+              <div class="auth-input-wrap">
+                <i class="bi bi-palette auth-input-icon"></i>
+                <input type="text" id="garage-vehicle-finish" class="auth-input" placeholder="e.g. Gloss Black, Matte PPF, Pearl White">
               </div>
             </div>
           </div>
+
+          <!-- Vehicle Maintenance Tip Card -->
+          <div class="alert alert-light border border-secondary border-opacity-25 rounded-4 p-3 mb-4 d-flex align-items-start gap-3">
+            <i class="bi bi-stars text-accent fs-3"></i>
+            <div>
+              <strong class="font-heading text-black small">RECOMMENDED DETAILED PROTOCOL:</strong>
+              <div class="text-muted-custom small mt-1">
+                For clear-coat paint preservation in Indian tropical weather, use our pH-neutral foam decontaminator followed by SiO2 ceramic sealant every 60 days.
+              </div>
+            </div>
+          </div>
+
+          <div class="d-flex justify-content-end">
+            <button type="submit" class="btn btn-x-primary px-4" id="garage-save-btn">
+              <i class="bi bi-check2-circle me-1"></i> Update My Garage
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- ── TAB 3: SAVED DELIVERY ADDRESS ── -->
+      <div class="profile-content-card mb-4" id="panel-address" style="display: none;">
+        <div class="profile-panel-header">
+          <div>
+            <h2 class="profile-panel-title">
+              <i class="bi bi-geo-alt text-accent"></i> Saved Delivery Address
+            </h2>
+            <div class="text-muted-custom small mt-1">
+              Your default delivery address for 1-click Express Checkout.
+            </div>
+          </div>
+        </div>
+
+        <form id="address-edit-form">
+          <div class="mb-3">
+            <label class="form-label font-heading text-black fw-bold small">STREET ADDRESS &amp; HOUSE / BUILDING *</label>
+            <textarea id="address-street" class="form-control form-control-custom" rows="2" placeholder="House/Flat No, Landmark, Street Address"></textarea>
+          </div>
+
+          <div class="row g-3 mb-4">
+            <div class="col-md-5">
+              <label class="form-label font-heading text-black fw-bold small">CITY / DISTRICT *</label>
+              <input type="text" id="address-city" class="form-control form-control-custom" placeholder="e.g. Malappuram, Kochi, Bengaluru">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label font-heading text-black fw-bold small">STATE *</label>
+              <input type="text" id="address-state" class="form-control form-control-custom" placeholder="e.g. Kerala, Karnataka">
+            </div>
+            <div class="col-md-3">
+              <label class="form-label font-heading text-black fw-bold small">PINCODE *</label>
+              <input type="text" id="address-pincode" class="form-control form-control-custom font-mono" maxlength="6" placeholder="e.g. 676306">
+            </div>
+          </div>
+
+          <div class="alert alert-light border border-secondary border-opacity-25 rounded-3 p-3 mb-4 d-flex align-items-center gap-2 small">
+            <i class="bi bi-truck text-danger fs-5"></i>
+            <span class="text-dark">Delhivery Express delivers across 19,000+ PIN codes with live package tracking.</span>
+          </div>
+
+          <div class="d-flex justify-content-end">
+            <button type="submit" class="btn btn-x-primary px-4" id="address-save-btn">
+              <i class="bi bi-check2-circle me-1"></i> Save Default Address
+            </button>
+          </div>
+        </form>
+      </div>
+
+      <!-- ── TAB 4: ACCOUNT SETTINGS & SECURITY ── -->
+      <div class="profile-content-card mb-4" id="panel-settings" style="display: none;">
+        <div class="profile-panel-header">
+          <div>
+            <h2 class="profile-panel-title">
+              <i class="bi bi-person-gear text-accent"></i> Account Identity &amp; Security
+            </h2>
+            <div class="text-muted-custom small mt-1">
+              Manage your personal credentials and communication preferences.
+            </div>
+          </div>
+        </div>
+
+        <form id="settings-edit-form" class="mb-5">
+          <div class="row g-3 mb-4">
+            <div class="col-md-6">
+              <label class="form-label font-heading text-black fw-bold small">FULL NAME *</label>
+              <div class="auth-input-wrap">
+                <i class="bi bi-person auth-input-icon"></i>
+                <input type="text" id="settings-name" class="auth-input" placeholder="Your full name" required>
+              </div>
+            </div>
+            <div class="col-md-6">
+              <label class="form-label font-heading text-black fw-bold small">PHONE NUMBER *</label>
+              <div class="auth-input-wrap">
+                <i class="bi bi-telephone auth-input-icon"></i>
+                <input type="tel" id="settings-phone" class="auth-input font-mono" placeholder="+91 XXXXXXXXXX">
+              </div>
+            </div>
+          </div>
+
+          <div class="mb-4">
+            <label class="form-label font-heading text-black fw-bold small">REGISTERED EMAIL</label>
+            <div class="auth-input-wrap">
+              <i class="bi bi-envelope auth-input-icon"></i>
+              <input type="email" id="settings-email" class="auth-input bg-light" readonly>
+            </div>
+            <div class="text-muted-custom small mt-1">Email address is tied to your login credentials and order notifications.</div>
+          </div>
+
+          <div class="d-flex justify-content-end">
+            <button type="submit" class="btn btn-x-primary px-4" id="settings-save-btn">
+              <i class="bi bi-check2-circle me-1"></i> Save Profile Details
+            </button>
+          </div>
+        </form>
+
+        <hr class="border-secondary border-opacity-25 my-4">
+
+        <!-- Password Reset & Security Zone -->
+        <h5 class="font-heading text-black fw-bold mb-3">
+          <i class="bi bi-shield-lock me-1 text-accent"></i> Account Security
+        </h5>
+        <div class="p-3 bg-surface-custom rounded border border-secondary border-opacity-25 d-flex flex-wrap justify-content-between align-items-center gap-3">
+          <div>
+            <div class="fw-bold text-black small">Password &amp; Sign-in</div>
+            <div class="text-muted-custom small">Request a secure password reset link to your email.</div>
+          </div>
+          <button type="button" class="btn btn-x-outline btn-sm" id="send-password-reset-btn">
+            <i class="bi bi-key me-1"></i> Send Password Reset Link
+          </button>
         </div>
 
       </div>
+
     </div>
   </main>
 
-  <!-- ── FOOTER MINI ── -->
-  <footer class="py-4 border-top text-center" style="background:#fff;font-size:.85rem;color:var(--x-text-muted);">
-    © 2026 XORONIQ Car Care • <a href="contact.html" class="text-accent">Contact Support</a>
+  <!-- ── LUXURY FOOTER ── -->
+  <footer class="py-4 border-top border-secondary border-opacity-25 bg-white text-center">
+    <div class="container container-custom d-flex flex-wrap justify-content-between align-items-center gap-3 text-muted-custom small">
+      <div>
+        © 2026 XORONIQ Car Care. All rights reserved. Care. Beyond Clean.
+      </div>
+      <div class="d-flex gap-3">
+        <a href="shop.html" class="text-muted-custom text-decoration-none">Shop</a>
+        <a href="tracking.html" class="text-muted-custom text-decoration-none">Tracking</a>
+        <a href="about.html" class="text-muted-custom text-decoration-none">About</a>
+        <a href="contact.html" class="text-muted-custom text-decoration-none">Concierge Support</a>
+      </div>
+    </div>
   </footer>
 
-  <script type="module">
-    import { initProfilePage } from './js/user.js';
-    import { initUserNavbar } from './js/user.js';
-    initUserNavbar();
-    initProfilePage();
-  </script>
-
+  <!-- Scripts -->
   <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script type="module" src="js/main.js"></script>
+  <script type="module">
+    import { initProfilePage, initUserNavbar } from './js/user.js';
+    document.addEventListener('DOMContentLoaded', () => {
+      initUserNavbar();
+      initProfilePage();
+    });
+  </script>
 </body>
 </html>

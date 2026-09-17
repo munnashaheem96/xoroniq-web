@@ -222,6 +222,7 @@ export function initAuthPage() {
 }
 
 // ─────────────────────────────────────────────────────────────
+// ─────────────────────────────────────────────────────────────
 // PROFILE PAGE
 // ─────────────────────────────────────────────────────────────
 
@@ -241,105 +242,430 @@ export async function initProfilePage() {
     const elName = document.getElementById('profile-name');
     const elEmail = document.getElementById('profile-email');
     const elSince = document.getElementById('profile-since');
+    const elGarageChip = document.getElementById('profile-garage-chip-text');
+
     if (elAvatar) elAvatar.textContent = initials;
-    if (elName) elName.textContent = data.name || user.displayName || 'My Account';
-    if (elEmail) elEmail.textContent = user.email;
+    if (elName) elName.textContent = data.name || user.displayName || 'VIP Enthusiast';
+    if (elEmail) elEmail.innerHTML = `<i class="bi bi-envelope me-1"></i> ${user.email}`;
     if (elSince) elSince.textContent = 'Member since ' + formatDate(user.metadata?.creationTime);
 
-    // Prefill form
-    const fields = ['name', 'phone', 'city', 'vehicleModel'];
-    fields.forEach(f => {
-      const el = document.getElementById(`profile-${f}`);
-      if (el) el.value = data[f] || '';
-    });
-
-    // Vehicle type radio
-    const vType = data.vehicleType || 'Car';
-    const radioEl = document.querySelector(`input[name="editVehicleType"][value="${vType}"]`);
-    if (radioEl) radioEl.checked = true;
-
-    // ── SAVE PROFILE ──
-    const saveForm = document.getElementById('profile-edit-form');
-    saveForm && saveForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const btn = document.getElementById('profile-save-btn');
-      btn.disabled = true;
-      btn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>SAVING...`;
-      try {
-        const updated = {
-          name: document.getElementById('profile-name-input')?.value.trim() || data.name,
-          phone: document.getElementById('profile-phone')?.value.trim(),
-          city: document.getElementById('profile-city')?.value.trim(),
-          vehicleModel: document.getElementById('profile-vehicleModel')?.value.trim(),
-          vehicleType: document.querySelector('input[name="editVehicleType"]:checked')?.value || vType,
-          updatedAt: new Date()
-        };
-        await saveUserProfile(user.uid, updated);
-        if (elName) elName.textContent = updated.name || user.displayName;
-        if (elAvatar) elAvatar.textContent = getInitials(updated.name);
-        showToast('Profile updated successfully!', 'success');
-      } catch {
-        showToast('Failed to save profile.', 'error');
-      } finally {
-        btn.disabled = false;
-        btn.innerHTML = `SAVE CHANGES <i class="bi bi-check2 ms-2"></i>`;
+    // Vehicle Garage summary badge
+    function updateGarageChipText() {
+      if (elGarageChip) {
+        if (data.vehicleModel) {
+          elGarageChip.textContent = `${data.vehicleModel} • ${data.vehicleType || 'Car'}`;
+        } else {
+          elGarageChip.textContent = `${data.vehicleType || 'Car'} Enthusiast`;
+        }
       }
+    }
+    updateGarageChipText();
+
+    // ── TABS SWITCHING ──
+    const tabButtons = document.querySelectorAll('.profile-nav-pill-btn');
+    const panels = ['panel-orders', 'panel-garage', 'panel-address', 'panel-settings'];
+
+    function switchTab(targetId) {
+      tabButtons.forEach(btn => {
+        if (btn.getAttribute('data-target') === targetId) {
+          btn.classList.add('active');
+        } else {
+          btn.classList.remove('active');
+        }
+      });
+      panels.forEach(pId => {
+        const el = document.getElementById(pId);
+        if (el) {
+          el.style.display = pId === targetId ? 'block' : 'none';
+        }
+      });
+    }
+
+    tabButtons.forEach(btn => {
+      btn.addEventListener('click', () => {
+        const target = btn.getAttribute('data-target');
+        switchTab(target);
+      });
     });
+
+    // Check hash in URL (e.g. #garage, #orders, #address, #settings)
+    if (window.location.hash) {
+      const hash = window.location.hash.replace('#', '');
+      const matched = panels.find(p => p.includes(hash));
+      if (matched) switchTab(matched);
+    }
+
+    // ── PREFILL FORMS ──
+    // 1. Garage
+    const garageModelInput = document.getElementById('garage-vehicle-model');
+    const garageFinishInput = document.getElementById('garage-vehicle-finish');
+    if (garageModelInput) garageModelInput.value = data.vehicleModel || '';
+    if (garageFinishInput) garageFinishInput.value = data.vehicleFinish || '';
+    const vType = data.vehicleType || 'Car';
+    const vTypeRadio = document.querySelector(`input[name="garageVehicleType"][value="${vType}"]`);
+    if (vTypeRadio) vTypeRadio.checked = true;
+
+    // 2. Address
+    const addressStreet = document.getElementById('address-street');
+    const addressCity = document.getElementById('address-city');
+    const addressState = document.getElementById('address-state');
+    const addressPincode = document.getElementById('address-pincode');
+    if (addressStreet) addressStreet.value = data.address || data.shippingAddress?.address || '';
+    if (addressCity) addressCity.value = data.city || data.shippingAddress?.city || '';
+    if (addressState) addressState.value = data.state || data.shippingAddress?.state || '';
+    if (addressPincode) addressPincode.value = data.pincode || data.shippingAddress?.pincode || '';
+
+    // 3. Settings
+    const settingsName = document.getElementById('settings-name');
+    const settingsPhone = document.getElementById('settings-phone');
+    const settingsEmail = document.getElementById('settings-email');
+    if (settingsName) settingsName.value = data.name || user.displayName || '';
+    if (settingsPhone) settingsPhone.value = data.phone || '';
+    if (settingsEmail) settingsEmail.value = user.email || '';
+
+    // ── FORM 1: GARAGE SUBMIT ──
+    const garageForm = document.getElementById('garage-edit-form');
+    if (garageForm) {
+      garageForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const saveBtn = document.getElementById('garage-save-btn');
+        if (saveBtn) {
+          saveBtn.disabled = true;
+          saveBtn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>Updating Garage...`;
+        }
+        try {
+          const selectedType = document.querySelector('input[name="garageVehicleType"]:checked')?.value || 'Car';
+          const model = garageModelInput ? garageModelInput.value.trim() : '';
+          const finish = garageFinishInput ? garageFinishInput.value.trim() : '';
+
+          data.vehicleType = selectedType;
+          data.vehicleModel = model;
+          data.vehicleFinish = finish;
+          data.updatedAt = new Date();
+
+          await saveUserProfile(user.uid, {
+            vehicleType: selectedType,
+            vehicleModel: model,
+            vehicleFinish: finish,
+            updatedAt: new Date()
+          });
+
+          updateGarageChipText();
+          showToast('Garage ride updated successfully!', 'success');
+        } catch (err) {
+          showToast('Failed to update garage details: ' + err.message, 'error');
+        } finally {
+          if (saveBtn) {
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = `<i class="bi bi-check2-circle me-1"></i> Update My Garage`;
+          }
+        }
+      });
+    }
+
+    // ── FORM 2: ADDRESS SUBMIT ──
+    const addressForm = document.getElementById('address-edit-form');
+    if (addressForm) {
+      addressForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const saveBtn = document.getElementById('address-save-btn');
+        if (saveBtn) {
+          saveBtn.disabled = true;
+          saveBtn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>Saving Address...`;
+        }
+        try {
+          const street = addressStreet ? addressStreet.value.trim() : '';
+          const city = addressCity ? addressCity.value.trim() : '';
+          const state = addressState ? addressState.value.trim() : '';
+          const pincode = addressPincode ? addressPincode.value.trim() : '';
+
+          data.address = street;
+          data.city = city;
+          data.state = state;
+          data.pincode = pincode;
+
+          await saveUserProfile(user.uid, {
+            address: street,
+            city,
+            state,
+            pincode,
+            shippingAddress: { address: street, city, state, pincode, country: 'India' },
+            updatedAt: new Date()
+          });
+
+          showToast('Default delivery address saved!', 'success');
+        } catch (err) {
+          showToast('Failed to save address: ' + err.message, 'error');
+        } finally {
+          if (saveBtn) {
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = `<i class="bi bi-check2-circle me-1"></i> Save Default Address`;
+          }
+        }
+      });
+    }
+
+    // ── FORM 3: SETTINGS SUBMIT ──
+    const settingsForm = document.getElementById('settings-edit-form');
+    if (settingsForm) {
+      settingsForm.addEventListener('submit', async (e) => {
+        e.preventDefault();
+        const saveBtn = document.getElementById('settings-save-btn');
+        if (saveBtn) {
+          saveBtn.disabled = true;
+          saveBtn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span>Saving...`;
+        }
+        try {
+          const newName = settingsName ? settingsName.value.trim() : '';
+          const newPhone = settingsPhone ? settingsPhone.value.trim() : '';
+
+          data.name = newName;
+          data.phone = newPhone;
+
+          await saveUserProfile(user.uid, {
+            name: newName,
+            phone: newPhone,
+            updatedAt: new Date()
+          });
+
+          if (elName) elName.textContent = newName || user.displayName;
+          if (elAvatar) elAvatar.textContent = getInitials(newName || user.displayName);
+          showToast('Profile credentials updated!', 'success');
+        } catch (err) {
+          showToast('Failed to update credentials: ' + err.message, 'error');
+        } finally {
+          if (saveBtn) {
+            saveBtn.disabled = false;
+            saveBtn.innerHTML = `<i class="bi bi-check2-circle me-1"></i> Save Profile Details`;
+          }
+        }
+      });
+    }
+
+    // ── PASSWORD RESET ──
+    const resetBtn = document.getElementById('send-password-reset-btn');
+    if (resetBtn) {
+      resetBtn.addEventListener('click', async () => {
+        if (!user.email) return;
+        resetBtn.disabled = true;
+        resetBtn.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span> Sending...`;
+        try {
+          await sendUserPasswordReset(user.email);
+          showToast(`Password reset link dispatched to ${user.email}`, 'success');
+        } catch (err) {
+          showToast('Failed to send reset link: ' + err.message, 'error');
+        } finally {
+          resetBtn.disabled = false;
+          resetBtn.innerHTML = `<i class="bi bi-key me-1"></i> Send Password Reset Link`;
+        }
+      });
+    }
 
     // ── SIGN OUT ──
     const signoutBtn = document.getElementById('profile-signout-btn');
-    signoutBtn && signoutBtn.addEventListener('click', async () => {
-      await userSignOut();
-      showToast('Signed out.', 'info');
-      setTimeout(() => window.location.href = 'index.html', 400);
-    });
-
-    // ── MY ORDERS ──
-    await loadUserOrders(user.email);
-
-    // Scroll to orders if hash
-    if (window.location.hash === '#orders') {
-      setTimeout(() => {
-        document.getElementById('profile-orders-section')?.scrollIntoView({ behavior: 'smooth' });
-      }, 300);
+    if (signoutBtn) {
+      signoutBtn.addEventListener('click', async () => {
+        await userSignOut();
+        showToast('Signed out of XORONIQ. Come back soon!', 'info');
+        setTimeout(() => window.location.href = 'index.html', 400);
+      });
     }
+
+    // ── LOAD & RENDER ORDERS ──
+    await loadUserOrders(user.email);
   });
 }
 
 async function loadUserOrders(email) {
   const container = document.getElementById('profile-orders-list');
+  const statOrders = document.getElementById('stat-total-orders');
+  const statActive = document.getElementById('stat-active-orders');
+  const statSpent = document.getElementById('stat-total-spent');
+  const tabCountBadge = document.getElementById('orders-tab-count');
+
   if (!container) return;
-  container.innerHTML = `<div class="text-center py-4"><span class="spinner-border text-accent"></span></div>`;
 
   try {
     const orders = await getUserOrders(email);
+
+    // Update KPI Metric Counters
+    const totalCount = orders.length;
+    const activeCount = orders.filter(o => o.orderStatus !== 'Delivered' && o.orderStatus !== 'Cancelled').length;
+    const totalSpentVal = orders.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
+
+    if (statOrders) statOrders.textContent = totalCount;
+    if (statActive) statActive.textContent = activeCount;
+    if (statSpent) statSpent.textContent = formatCurrency(totalSpentVal);
+    if (tabCountBadge) tabCountBadge.textContent = totalCount;
+
     if (!orders.length) {
       container.innerHTML = `
         <div class="text-center py-5">
-          <i class="bi bi-bag-x" style="font-size:2.5rem;color:var(--x-text-muted);"></i>
-          <p class="mt-3 text-muted">No orders yet. <a href="shop.html" class="text-accent fw-600">Start shopping →</a></p>
-        </div>`;
+          <div class="d-inline-flex align-items-center justify-content-center bg-light rounded-circle mb-3" style="width: 76px; height: 76px;">
+            <i class="bi bi-bag-x text-muted-custom fs-1"></i>
+          </div>
+          <h4 class="font-heading text-black fw-bold mb-2">NO ORDERS PLACED YET</h4>
+          <p class="text-muted-custom small mb-4" style="max-width: 420px; margin: 0 auto;">
+            Explore our professional-grade vehicle detailing chemicals, SiO2 ceramic boosters, and high-performance kits.
+          </p>
+          <a href="shop.html" class="btn btn-x-primary px-4 py-2">
+            <i class="bi bi-bag-plus me-1"></i> Explore Shop Arsenal
+          </a>
+        </div>
+      `;
       return;
     }
 
-    container.innerHTML = orders.map(order => `
-      <div class="profile-order-card">
-        <div class="d-flex justify-content-between align-items-start flex-wrap gap-2">
-          <div>
-            <div class="fw-700" style="font-size:.9rem;">#${order.orderNumber || order.id?.slice(-8).toUpperCase()}</div>
-            <div style="font-size:.8rem;color:var(--x-text-muted);">${formatDate(order.createdAt)}</div>
+    let currentFilter = 'ALL';
+
+    function renderFilteredOrders() {
+      let filtered = [...orders];
+      if (currentFilter === 'ACTIVE') {
+        filtered = filtered.filter(o => o.orderStatus !== 'Delivered' && o.orderStatus !== 'Cancelled');
+      } else if (currentFilter === 'DELIVERED') {
+        filtered = filtered.filter(o => o.orderStatus === 'Delivered');
+      }
+
+      if (!filtered.length) {
+        container.innerHTML = `
+          <div class="text-center py-5 text-muted-custom small">
+            <i class="bi bi-inbox fs-2 mb-2 d-block"></i>
+            No orders match the selected filter.
           </div>
-          <span class="order-status-badge status-${(order.orderStatus || '').toLowerCase().replace(/\s+/g, '-')}">${order.orderStatus || 'Processing'}</span>
-        </div>
-        <div class="mt-2" style="font-size:.85rem;">
-          ${(order.items || []).map(i => `<span class="me-2">• ${i.name} ×${i.quantity}</span>`).join('')}
-        </div>
-        <div class="d-flex justify-content-between align-items-center mt-2">
-          <span class="fw-700 text-accent">${formatCurrency(order.total)}</span>
-          <a href="tracking.html?order=${order.orderNumber || ''}" class="btn btn-x-outline-accent btn-sm" style="font-size:.75rem;">Track Order</a>
-        </div>
-      </div>`).join('');
-  } catch {
-    container.innerHTML = `<p class="text-muted text-center py-3">Unable to load orders.</p>`;
+        `;
+        return;
+      }
+
+      container.innerHTML = filtered.map(order => {
+        const orderIdDisplay = order.orderId || order.orderNumber || (order.id ? order.id.slice(-8).toUpperCase() : 'N/A');
+        const isCod = order.payment?.method === 'COD' || (order.orderStatus && order.orderStatus.includes('COD'));
+        
+        let statusClass = 'status-processing';
+        if (order.orderStatus === 'Delivered') statusClass = 'status-delivered';
+        else if (order.orderStatus === 'Shipped') statusClass = 'status-shipped';
+        else if (order.orderStatus === 'Cancelled') statusClass = 'status-cancelled';
+        else if (isCod) statusClass = 'status-order-placed-cod';
+
+        const trackingUrl = order.trackingUrl || (order.trackingId ? `https://www.delhivery.com/track/package/${order.trackingId}` : null);
+
+        return `
+          <div class="profile-order-card">
+            <div class="profile-order-header">
+              <div>
+                <span class="text-muted-custom small" style="font-size: 0.76rem;">ORDER REFERENCE</span>
+                <div class="order-id-badge">#${orderIdDisplay}</div>
+                <div class="text-muted-custom small mt-1">
+                  <i class="bi bi-calendar3 me-1"></i> Placed on ${formatDate(order.createdAt)}
+                </div>
+              </div>
+
+              <div class="text-end">
+                <div class="d-flex align-items-center gap-2 justify-content-end mb-1">
+                  <span class="order-status-badge ${statusClass}">
+                    <i class="bi bi-record-circle-fill" style="font-size: 0.6rem;"></i>
+                    ${order.orderStatus || 'Processing'}
+                  </span>
+                </div>
+                <div>
+                  ${isCod ? `
+                    <span class="badge bg-warning bg-opacity-25 text-dark border border-warning" style="font-size: 0.7rem;">CASH ON DELIVERY</span>
+                  ` : `
+                    <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25" style="font-size: 0.7rem;">PAID ONLINE (RAZORPAY)</span>
+                  `}
+                </div>
+              </div>
+            </div>
+
+            <!-- Items Ordered Breakdown -->
+            <div class="order-items-grid">
+              ${(order.items || []).map(item => `
+                <div class="order-item-row">
+                  <div class="d-flex align-items-center gap-3">
+                    <img src="${item.image || 'images/product/essentials.png'}" alt="${item.name}" class="order-item-img" onerror="this.src='images/product/essentials.png'">
+                    <div>
+                      <div class="text-black fw-bold" style="font-size: 0.88rem;">${item.name}</div>
+                      <div class="text-muted-custom small">Qty: ${item.quantity} ${item.sku ? `• SKU: ${item.sku}` : ''}</div>
+                    </div>
+                  </div>
+                  <div class="text-end font-mono text-black fw-bold">
+                    ${formatCurrency((item.price || 0) * (item.quantity || 1))}
+                  </div>
+                </div>
+              `).join('')}
+            </div>
+
+            <!-- Delhivery Live Tracking Alert Box (If Dispatched / Shipped) -->
+            ${order.trackingId ? `
+              <div class="profile-delhivery-box">
+                <div class="d-flex align-items-center gap-2">
+                  <span class="badge bg-danger text-white px-2 py-1 small fw-bold">
+                    <i class="bi bi-truck me-1"></i> DELHIVERY EXPRESS
+                  </span>
+                  <span class="font-mono text-black fw-bold small">
+                    AWB: <span>${order.trackingId}</span>
+                  </span>
+                  <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-2 copy-profile-awb-btn" data-awb="${order.trackingId}" title="Copy Delhivery AWB">
+                    <i class="bi bi-clipboard"></i>
+                  </button>
+                </div>
+                <div>
+                  <a href="${trackingUrl}" target="_blank" rel="noopener noreferrer" class="btn btn-sm btn-danger px-3 py-1 d-inline-flex align-items-center gap-1 shadow-sm font-sans" style="font-size: 0.78rem;">
+                    <span>Track Live on Delhivery</span>
+                    <i class="bi bi-box-arrow-up-right" style="font-size: 0.7rem;"></i>
+                  </a>
+                </div>
+              </div>
+            ` : ''}
+
+            <!-- Order Footer / Grand Total & Actions -->
+            <div class="d-flex flex-wrap justify-content-between align-items-center pt-2 border-top border-secondary border-opacity-10 gap-2">
+              <div class="d-flex align-items-center gap-3">
+                <span class="text-muted-custom small">Grand Total:</span>
+                <span class="font-heading text-accent fw-bold fs-5">${formatCurrency(order.total)}</span>
+              </div>
+              <div class="d-flex align-items-center gap-2">
+                <a href="tracking.html?orderId=${orderIdDisplay}" class="btn btn-x-outline btn-sm font-sans" style="font-size: 0.78rem;">
+                  <i class="bi bi-geo-alt me-1"></i> Dispatch Timeline
+                </a>
+                <a href="success.html?orderId=${orderIdDisplay}" class="btn btn-x-outline btn-sm font-sans" style="font-size: 0.78rem;">
+                  <i class="bi bi-receipt me-1"></i> View Receipt
+                </a>
+              </div>
+            </div>
+          </div>
+        `;
+      }).join('');
+
+      // Attach copy listeners
+      container.querySelectorAll('.copy-profile-awb-btn').forEach(btn => {
+        btn.addEventListener('click', async () => {
+          const awb = btn.getAttribute('data-awb');
+          if (awb) {
+            try {
+              await navigator.clipboard.writeText(awb);
+              showToast(`Delhivery AWB ${awb} copied!`, 'success');
+            } catch {
+              showToast(`AWB: ${awb}`, 'info');
+            }
+          }
+        });
+      });
+    }
+
+    renderFilteredOrders();
+
+    // Attach filter buttons
+    document.querySelectorAll('.order-filter-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        document.querySelectorAll('.order-filter-btn').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+        currentFilter = btn.getAttribute('data-filter') || 'ALL';
+        renderFilteredOrders();
+      });
+    });
+
+  } catch (err) {
+    console.error('loadUserOrders error:', err);
+    container.innerHTML = `<p class="text-danger text-center py-4">Unable to load orders. Please refresh.</p>`;
   }
 }

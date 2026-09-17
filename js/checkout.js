@@ -8,6 +8,7 @@ import { createOrder, onUserAuthChange, getUserProfile } from './firebase.js';
 import { openRazorpayCheckout } from './razorpay.js';
 import { formatCurrency, generateOrderId, showToast, setStorage } from './utils.js';
 import { sendOrderToGoogleSheets } from './sheets.js';
+import { trackInitiateCheckout } from './pixel.js';
 
 export function initCheckoutPage() {
   const cart = getCart();
@@ -41,38 +42,111 @@ export function initCheckoutPage() {
   const orderItemsContainer = document.getElementById('checkout-items-list');
   const subtotalEl = document.getElementById('checkout-subtotal');
   const shippingEl = document.getElementById('checkout-shipping');
+  const codRow = document.getElementById('checkout-cod-row');
+  const codFeeEl = document.getElementById('checkout-cod-fee');
   const totalEl = document.getElementById('checkout-total');
   const checkoutForm = document.getElementById('checkout-form');
   const placeOrderBtn = document.getElementById('place-order-btn');
   const pincodeNoticeEl = document.getElementById('checkout-pincode-notice');
+  const stateInput = document.getElementById('cust-state');
+  const cityInput = document.getElementById('cust-city');
+  const payRazorpayRadio = document.getElementById('payRazorpay');
+  const payCODRadio = document.getElementById('payCOD');
+  const cardRazorpay = document.getElementById('card-pay-razorpay');
+  const cardCOD = document.getElementById('card-pay-cod');
+  const codNoticeEl = document.getElementById('checkout-cod-notice');
+
+  // Support pre-selected payment method via query string (e.g. ?payment=cod)
+  const urlParams = new URLSearchParams(window.location.search);
+  const initialPaymentParam = urlParams.get('payment');
+  if (initialPaymentParam === 'cod' && payCODRadio) {
+    payCODRadio.checked = true;
+  } else if (initialPaymentParam === 'razorpay' && payRazorpayRadio) {
+    payRazorpayRadio.checked = true;
+  }
+
+  function getSelectedPaymentMethod() {
+    if (payCODRadio && payCODRadio.checked) return 'COD';
+    return 'RAZORPAY';
+  }
 
   function updateOrderTotalsDisplay() {
     currentPincode = pincodeInput ? pincodeInput.value.trim() : '';
-    totals = getCartTotals(currentPincode);
+    const currentState = stateInput ? stateInput.value.trim() : '';
+    const currentCity = cityInput ? cityInput.value.trim() : '';
+
+    // If customer entered a Kerala PIN (67xxxx, 68xxxx, 69xxxx) and state is empty, auto-fill Kerala
+    if (currentPincode.length >= 2 && stateInput && !currentState) {
+      const pfx = currentPincode.substring(0, 2);
+      if (pfx === '67' || pfx === '68' || pfx === '69') {
+        stateInput.value = 'Kerala';
+      }
+    }
+
+    const selectedMethod = getSelectedPaymentMethod();
+    totals = getCartTotals(currentPincode, selectedMethod, stateInput ? stateInput.value.trim() : '', currentCity);
 
     if (subtotalEl) subtotalEl.textContent = formatCurrency(totals.subtotal);
     
     if (shippingEl) {
       if (totals.shipping === 0) {
-        shippingEl.innerHTML = '<span class="text-success fw-bold">FREE (Orders > ₹2,000)</span>';
-      } else if (totals.isLocalDelivery) {
-        shippingEl.innerHTML = '<span class="text-accent fw-bold">₹40 <small class="text-muted-custom fw-normal">(Local 676xxx)</small></span>';
+        shippingEl.innerHTML = '<span class="text-success fw-bold">FREE (Orders > ₹2,500)</span>';
+      } else if (totals.isKerala) {
+        shippingEl.innerHTML = '<span class="text-accent fw-bold">₹60 <small class="text-muted-custom fw-normal">(All Kerala)</small></span>';
       } else {
-        shippingEl.innerHTML = '<span class="text-dark fw-bold">₹80 <small class="text-muted-custom fw-normal">(Standard)</small></span>';
+        shippingEl.innerHTML = `<span class="text-dark fw-bold">₹${totals.shipping} <small class="text-muted-custom fw-normal">(Rest of India)</small></span>`;
+      }
+    }
+
+    // Toggle COD fee row
+    if (codRow) {
+      if (selectedMethod === 'COD') {
+        codRow.style.display = 'flex';
+        if (codFeeEl) codFeeEl.textContent = `+${formatCurrency(totals.codFee)}`;
+      } else {
+        codRow.style.display = 'none';
+      }
+    }
+
+    // Toggle COD informational notice
+    if (codNoticeEl) {
+      codNoticeEl.style.display = (selectedMethod === 'COD') ? 'block' : 'none';
+    }
+
+    // Toggle active card styles
+    if (cardRazorpay && cardCOD) {
+      if (selectedMethod === 'COD') {
+        cardCOD.classList.add('border-accent');
+        cardCOD.classList.remove('border-secondary');
+        cardRazorpay.classList.remove('border-accent');
+        cardRazorpay.classList.add('border-secondary');
+      } else {
+        cardRazorpay.classList.add('border-accent');
+        cardRazorpay.classList.remove('border-secondary');
+        cardCOD.classList.remove('border-accent');
+        cardCOD.classList.add('border-secondary');
       }
     }
 
     if (totalEl) totalEl.textContent = formatCurrency(totals.total);
 
+    if (placeOrderBtn) {
+      if (selectedMethod === 'COD') {
+        placeOrderBtn.innerHTML = `<i class="bi bi-truck me-2"></i> PLACE ORDER (CASH ON DELIVERY) — ${formatCurrency(totals.total)}`;
+      } else {
+        placeOrderBtn.innerHTML = `<i class="bi bi-lock-fill me-2"></i> PAY & CONFIRM ORDER — ${formatCurrency(totals.total)}`;
+      }
+    }
+
     if (pincodeNoticeEl) {
       if (totals.shipping === 0) {
-        pincodeNoticeEl.innerHTML = '<span class="text-success small fw-semibold"><i class="bi bi-check-circle-fill me-1"></i> Order above ₹2,000 — Free Shipping Applied!</span>';
+        pincodeNoticeEl.innerHTML = '<span class="text-success small fw-semibold"><i class="bi bi-check-circle-fill me-1"></i> Order above ₹2,500 — Free Shipping Applied!</span>';
         pincodeNoticeEl.style.display = 'block';
-      } else if (totals.isLocalDelivery) {
-        pincodeNoticeEl.innerHTML = '<span class="text-accent small fw-semibold"><i class="bi bi-geo-alt-fill me-1"></i> Local Area PIN (Near 676306) — Reduced Delivery Fee: ₹40</span>';
+      } else if (totals.isKerala) {
+        pincodeNoticeEl.innerHTML = '<span class="text-accent small fw-semibold"><i class="bi bi-geo-alt-fill me-1"></i> All Kerala Delivery: ₹60 Flat Rate</span>';
         pincodeNoticeEl.style.display = 'block';
       } else if (currentPincode.length === 6) {
-        pincodeNoticeEl.innerHTML = '<span class="text-muted-custom small"><i class="bi bi-truck me-1"></i> Standard Express Shipping: ₹80 (Free above ₹2,000)</span>';
+        pincodeNoticeEl.innerHTML = `<span class="text-muted-custom small"><i class="bi bi-truck me-1"></i> Rest of India Delivery: ₹${totals.shipping} (Free above ₹2,500)</span>`;
         pincodeNoticeEl.style.display = 'block';
       } else {
         pincodeNoticeEl.style.display = 'none';
@@ -82,6 +156,34 @@ export function initCheckoutPage() {
 
   if (pincodeInput) {
     pincodeInput.addEventListener('input', updateOrderTotalsDisplay);
+  }
+  if (stateInput) {
+    stateInput.addEventListener('input', updateOrderTotalsDisplay);
+    stateInput.addEventListener('change', updateOrderTotalsDisplay);
+  }
+  if (cityInput) {
+    cityInput.addEventListener('input', updateOrderTotalsDisplay);
+    cityInput.addEventListener('change', updateOrderTotalsDisplay);
+  }
+
+  if (payRazorpayRadio) payRazorpayRadio.addEventListener('change', updateOrderTotalsDisplay);
+  if (payCODRadio) payCODRadio.addEventListener('change', updateOrderTotalsDisplay);
+
+  if (cardRazorpay) {
+    cardRazorpay.addEventListener('click', () => {
+      if (payRazorpayRadio && !payRazorpayRadio.checked) {
+        payRazorpayRadio.checked = true;
+        updateOrderTotalsDisplay();
+      }
+    });
+  }
+  if (cardCOD) {
+    cardCOD.addEventListener('click', () => {
+      if (payCODRadio && !payCODRadio.checked) {
+        payCODRadio.checked = true;
+        updateOrderTotalsDisplay();
+      }
+    });
   }
 
   if (cart.length === 0) {
@@ -112,7 +214,7 @@ export function initCheckoutPage() {
           </div>
           <div>
             <div class="font-heading fw-bold text-black small">${item.name}</div>
-            <div class="text-muted-custom" style="font-size: 0.75rem;">SKU: ${item.sku || 'N/A'}</div>
+            <div class="text-muted-custom" style="font-size: 0.72rem;">SKU: ${item.sku || 'N/A'} • Delivery: ₹${item.deliveryFee !== undefined ? item.deliveryFee : 80}</div>
           </div>
         </div>
         <div class="font-mono text-black fw-bold small">
@@ -123,6 +225,7 @@ export function initCheckoutPage() {
   }
 
   updateOrderTotalsDisplay();
+  trackInitiateCheckout(cart, totals.total);
 
   // Form Submit Handler
   if (checkoutForm) {
@@ -136,6 +239,7 @@ export function initCheckoutPage() {
       const city = document.getElementById('cust-city').value.trim();
       const state = document.getElementById('cust-state').value.trim();
       const pincode = document.getElementById('cust-pincode').value.trim();
+      const selectedPaymentMethod = getSelectedPaymentMethod();
 
       if (!name || !email || !phone || !address || !city || !state || !pincode) {
         showToast('Please fill in all shipping details.', 'warning');
@@ -149,18 +253,66 @@ export function initCheckoutPage() {
         return;
       }
 
-      // Recalculate totals with entered pincode
-      totals = getCartTotals(pincode);
+      // Recalculate totals with entered pincode, state, and payment method
+      totals = getCartTotals(pincode, selectedPaymentMethod, state, city);
 
-      // Lock button & show processing
       const originalBtnHtml = placeOrderBtn.innerHTML;
       placeOrderBtn.disabled = true;
+
+      const orderId = generateOrderId();
+
+      // ======================================================================
+      // CASH ON DELIVERY (COD) FLOW
+      // ======================================================================
+      if (selectedPaymentMethod === 'COD') {
+        placeOrderBtn.innerHTML = `
+          <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+          CONFIRMING CASH ON DELIVERY ORDER...
+        `;
+
+        const orderData = {
+          orderId: orderId,
+          customer: { name, email, phone: cleanPhone },
+          shippingAddress: { address, city, state, pincode, country: 'India' },
+          items: cart,
+          subtotal: totals.subtotal,
+          shipping: totals.shipping,
+          codFee: totals.codFee,
+          total: totals.total,
+          orderStatus: 'Order Placed (COD)',
+          payment: {
+            method: 'COD',
+            status: 'PENDING_COD',
+            codFee: totals.codFee,
+            details: 'Cash on Delivery (+₹20 extra handling fee)'
+          }
+        };
+
+        try {
+          await createOrder(orderData);
+          sendOrderToGoogleSheets(orderData).catch(err => {
+            console.warn('Google Sheets sync note:', err);
+          });
+          setStorage('xoroniq_last_order', orderData);
+          clearCart();
+          window.location.href = `success.html?orderId=${orderId}&payment=cod`;
+        } catch (err) {
+          console.error('Failed to store COD order in Firestore:', err);
+          sendOrderToGoogleSheets(orderData).catch(e => console.warn('Google Sheets fallback note:', e));
+          setStorage('xoroniq_last_order', orderData);
+          clearCart();
+          window.location.href = `success.html?orderId=${orderId}&payment=cod`;
+        }
+        return;
+      }
+
+      // ======================================================================
+      // PREPAID ONLINE PAYMENT FLOW (RAZORPAY)
+      // ======================================================================
       placeOrderBtn.innerHTML = `
         <span class="spinner-border spinner-border-sm me-2" role="status"></span>
         INITIALIZING SECURE CHECKOUT...
       `;
-
-      const orderId = generateOrderId();
 
       try {
         await openRazorpayCheckout({
@@ -180,7 +332,9 @@ export function initCheckoutPage() {
               items: cart,
               subtotal: totals.subtotal,
               shipping: totals.shipping,
+              codFee: 0,
               total: totals.total,
+              orderStatus: 'Payment Confirmed',
               payment: {
                 method: 'RAZORPAY',
                 razorpayPaymentId: paymentResponse.razorpay_payment_id || `pay_${Date.now()}`,
@@ -197,15 +351,13 @@ export function initCheckoutPage() {
               });
               setStorage('xoroniq_last_order', orderData);
               clearCart();
-              window.location.href = `success.html?orderId=${orderId}`;
+              window.location.href = `success.html?orderId=${orderId}&payment=razorpay`;
             } catch (err) {
               console.error('Failed to store order in Firestore:', err);
-              // Dispatch order to Google Sheets even if Firestore was slow
               sendOrderToGoogleSheets(orderData).catch(e => console.warn('Google Sheets fallback note:', e));
-              // Store locally in case of network issue
               setStorage('xoroniq_last_order', orderData);
               clearCart();
-              window.location.href = `success.html?orderId=${orderId}`;
+              window.location.href = `success.html?orderId=${orderId}&payment=razorpay`;
             }
           },
           onFailure: (error) => {
