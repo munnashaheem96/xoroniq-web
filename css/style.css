@@ -1570,3 +1570,23 @@ p {
   line-height: 1.7;
 }
 
+/* ==========================================================================
+   RAZORPAY EMI² AFFORDABILITY WIDGET CONTAINER
+   Clean, minimal, responsive container aligning with XORONIQ luxury aesthetic
+   ========================================================================== */
+.razorpay-affordability-container {
+  width: 100%;
+  max-width: 100%;
+  overflow: hidden;
+  border-radius: var(--x-radius-sm, 8px);
+  background-color: transparent;
+  transition: opacity 0.25s ease;
+}
+
+.razorpay-affordability-container iframe,
+.razorpay-affordability-container .rzp-iframe {
+  max-width: 100% !important;
+  display: block;
+}
+
+

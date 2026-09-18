@@ -7,6 +7,7 @@ import { getProductById, getProductBySlug, INITIAL_ESSENTIAL_KIT } from './fireb
 import { formatCurrency, calculateDiscount, showToast, formatCategoryBadge } from './utils.js';
 import { addToCart } from './cart.js';
 import { trackViewContent } from './pixel.js';
+import { initRazorpayAffordabilityWidget } from './razorpay.js';
 
 /**
  * Initialize Standalone Product Detail Page
@@ -229,5 +230,26 @@ function renderProductDetails(product) {
         window.location.href = 'checkout.html';
       });
     }
+  }
+
+  // ==========================================================================
+  // Razorpay EMI² Affordability Widget (Dynamic Product Pricing)
+  // ==========================================================================
+  const affordabilityWidgetContainer = document.getElementById('razorpay-affordability-widget');
+  const validPrice = Number(product.price);
+
+  if (isSoon || isNaN(validPrice) || validPrice <= 0) {
+    if (affordabilityWidgetContainer) {
+      affordabilityWidgetContainer.style.display = 'none';
+      affordabilityWidgetContainer.innerHTML = '';
+    }
+  } else {
+    // Convert current dynamic selling price to paise (e.g. ₹1,199 -> 119900 paise)
+    const amountInPaise = Math.round(validPrice * 100);
+    initRazorpayAffordabilityWidget({
+      amount: amountInPaise,
+      containerId: 'razorpay-affordability-widget',
+      isDarkMode: false,
+    });
   }
 }
