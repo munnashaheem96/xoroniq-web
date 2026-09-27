@@ -341,14 +341,15 @@ export function initCheckoutPage() {
             console.warn('Payment failed or cancelled:', error);
             placeOrderBtn.disabled = false;
             placeOrderBtn.innerHTML = originalBtnHtml;
-            showToast('Payment was not completed. Please try again.', 'error');
+            const msg = error?.description || error?.message || (typeof error === 'string' ? error : 'Payment was not completed. Please try again.');
+            showToast(msg, 'error');
           },
         });
       } catch (err) {
         console.error('Error in checkout flow:', err);
         placeOrderBtn.disabled = false;
         placeOrderBtn.innerHTML = originalBtnHtml;
-        showToast('Unable to start payment checkout.', 'error');
+        showToast(err?.message || 'Unable to start payment checkout.', 'error');
       }
     });
   }

@@ -125,7 +125,7 @@ app.post('/api/create-order', async (req, res) => {
       razorpayOrderId: razorpayOrder.id,
       amount: razorpayOrder.amount, // in paise
       currency: 'INR',
-      keyId: process.env.RAZORPAY_KEY_ID || 'rzp_live_TWJriH4XFtLA4T'
+      keyId: process.env.RAZORPAY_KEY_ID || 'rzp_live_Tgwv2bPRil40BG'
     });
   } catch (err) {
     console.error('[Create Order Route Error]:', err);

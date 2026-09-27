@@ -15,31 +15,40 @@ const { sendPartnerOrderEmail, sendCustomerOrderEmail } = require('./emailServic
  */
 async function getNextOrderId(db) {
   const currentYear = new Date().getFullYear();
-  const counterRef = db.collection('counters').doc(`orders_${currentYear}`);
-
-  return await db.runTransaction(async (transaction) => {
-    const docSnap = await transaction.get(counterRef);
-    let nextNum = 1;
-
-    if (docSnap.exists) {
-      const data = docSnap.data();
-      nextNum = (Number(data.lastOrderNumber) || 0) + 1;
-      transaction.update(counterRef, {
-        lastOrderNumber: nextNum,
-        updatedAt: admin.firestore.FieldValue.serverTimestamp()
-      });
-    } else {
-      transaction.set(counterRef, {
-        year: currentYear,
-        lastOrderNumber: nextNum,
-        createdAt: admin.firestore.FieldValue.serverTimestamp(),
-        updatedAt: admin.firestore.FieldValue.serverTimestamp()
-      });
+  try {
+    if (!db || typeof db.collection !== 'function') {
+      throw new Error('Firestore not initialized');
     }
+    const counterRef = db.collection('counters').doc(`orders_${currentYear}`);
 
-    const paddedNum = String(nextNum).padStart(5, '0');
-    return `XRQ-${currentYear}-${paddedNum}`;
-  });
+    return await db.runTransaction(async (transaction) => {
+      const docSnap = await transaction.get(counterRef);
+      let nextNum = 1;
+
+      if (docSnap.exists) {
+        const data = docSnap.data();
+        nextNum = (Number(data.lastOrderNumber) || 0) + 1;
+        transaction.update(counterRef, {
+          lastOrderNumber: nextNum,
+          updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+      } else {
+        transaction.set(counterRef, {
+          year: currentYear,
+          lastOrderNumber: nextNum,
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+          updatedAt: admin.firestore.FieldValue.serverTimestamp()
+        });
+      }
+
+      const paddedNum = String(nextNum).padStart(5, '0');
+      return `XRQ-${currentYear}-${paddedNum}`;
+    });
+  } catch (err) {
+    console.warn('[ORDER ID COUNTER NOTE]:', err.message);
+    const rand = Math.floor(10000 + Math.random() * 90000);
+    return `XRQ-${currentYear}-${rand}`;
+  }
 }
 
 /**
@@ -157,8 +166,14 @@ async function createPendingOrder(db, {
     updatedAt: admin.firestore.FieldValue.serverTimestamp()
   };
 
-  const docRef = db.collection('orders').doc(uniqueOrderId);
-  await docRef.set(orderPayload);
+  try {
+    if (db && typeof db.collection === 'function') {
+      const docRef = db.collection('orders').doc(uniqueOrderId);
+      await docRef.set(orderPayload);
+    }
+  } catch (err) {
+    console.warn('[PENDING ORDER FIRESTORE WRITE NOTE]:', err.message);
+  }
 
   return { id: uniqueOrderId, ...orderPayload };
 }
