@@ -139,7 +139,6 @@ export function initCheckoutPage() {
   }
 
   if (payRazorpayRadio) payRazorpayRadio.addEventListener('change', updateOrderTotalsDisplay);
-  if (payCODRadio) payCODRadio.addEventListener('change', updateOrderTotalsDisplay);
 
   if (cardRazorpay) {
     cardRazorpay.addEventListener('click', () => {
