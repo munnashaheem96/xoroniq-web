@@ -1,20 +1,72 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    
-    // Products Collection: Public read, open write for admin & catalog synchronization
-    match /products/{document=**} {
-      allow read, write: if true;
-    }
-    
-    // Orders Collection: Public create (customer checkout), read and update for admin & customer status tracking
-    match /orders/{document=**} {
-      allow read, write: if true;
+
+    // Helper: Check if user is authenticated
+    function isAuthenticated() {
+      return request.auth != null;
     }
 
-    // Default catch-all
+    // Helper: Check if user has administrative rights
+    function isAuthorizedAdmin() {
+      return isAuthenticated() && (
+        request.auth.token.admin == true ||
+        request.auth.token.email.lower() in [
+          'munnashaheemperinchikkal@gmail.com',
+          'sanahuhaq0@gmail.com',
+          'tobesuccess96@gmail.com',
+          'xoroniq@gmail.com',
+          'admin@xoroniq.com'
+        ] ||
+        request.auth.token.email.matches('.*@xoroniq\\.store$') ||
+        request.auth.token.email.matches('.*@xoroniq\\.com$')
+      );
+    }
+
+    // Helper: Check if user is document owner
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // 1. PRODUCTS COLLECTION
+    // Public read so storefront and search can display items.
+    // Only verified administrators can add, update, or delete catalog items.
+    match /products/{productId} {
+      allow read: if true;
+      allow write: if isAuthorizedAdmin();
+    }
+
+    // 2. ORDERS COLLECTION
+    // Checkout can create new order records.
+    // Admins can read, update, or delete all orders.
+    // Authenticated customers can read ONLY their own orders.
+    // Unauthenticated/unauthorized users cannot list or access orders.
+    match /orders/{orderId} {
+      // Allow customer checkout creation
+      allow create: if true;
+
+      // Allow admin full read, or authenticated customer to read their own order
+      allow read: if isAuthorizedAdmin() || (
+        isAuthenticated() && (
+          resource.data.customer.email.lower() == request.auth.token.email.lower() ||
+          resource.data.customerEmail.lower() == request.auth.token.email.lower() ||
+          resource.data.userId == request.auth.uid
+        )
+      );
+
+      // Only verified administrators can update dispatch/tracking or delete orders
+      allow update, delete: if isAuthorizedAdmin();
+    }
+
+    // 3. USERS COLLECTION (Customer Profiles)
+    // Only the account owner or an admin can access or modify personal profile data.
+    match /users/{userId} {
+      allow read, write: if isAuthorizedAdmin() || isOwner(userId);
+    }
+
+    // Default: Deny all other collections and operations
     match /{document=**} {
-      allow read, write: if true;
+      allow read, write: if false;
     }
   }
 }

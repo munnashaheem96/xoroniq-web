@@ -267,6 +267,77 @@ app.post('/api/resend-emails', async (req, res) => {
 });
 
 // ------------------------------------------------------------------------------
+// 6. SECURE PUBLIC ORDER TRACKING ENDPOINT
+// Endpoint: GET /api/track-order
+// ------------------------------------------------------------------------------
+app.get('/api/track-order', async (req, res) => {
+  try {
+    const term = (req.query.orderId || req.query.term || '').trim();
+    const phone = (req.query.phone || '').replace(/\D/g, '');
+
+    if (!term && !phone) {
+      return res.status(400).json({ error: 'Order ID or phone number is required.' });
+    }
+
+    let orderDoc = null;
+
+    if (term) {
+      const q = await db.collection('orders').where('orderId', '==', term).limit(1).get();
+      if (!q.empty) {
+        orderDoc = q.docs[0];
+      }
+    }
+
+    if (!orderDoc && phone && phone.length >= 10) {
+      try {
+        const q = await db.collection('orders').where('customer.phone', '==', phone).limit(1).get();
+        if (!q.empty) {
+          orderDoc = q.docs[0];
+        }
+      } catch (phoneErr) {
+        console.warn('Phone search note:', phoneErr);
+      }
+    }
+
+    if (!orderDoc) {
+      return res.status(404).json({ error: 'Order not found.' });
+    }
+
+    const data = orderDoc.data();
+
+    // Sanitize order details for public tracking: shield PII and payment secrets
+    const sanitizedOrder = {
+      orderId: data.orderId,
+      orderStatus: data.orderStatus || 'Payment Confirmed',
+      trackingId: data.trackingId || null,
+      courier: data.courier || 'Delhivery',
+      trackingUrl: data.trackingUrl || (data.trackingId ? `https://www.delhivery.com/track/package/${data.trackingId}` : null),
+      createdAt: data.createdAt,
+      items: (data.items || []).map(i => ({
+        name: i.name,
+        quantity: i.quantity,
+        price: i.price,
+        image: i.image
+      })),
+      total: data.total,
+      shippingAddress: {
+        city: data.shippingAddress?.city || '',
+        state: data.shippingAddress?.state || '',
+        pincode: data.shippingAddress?.pincode ? String(data.shippingAddress.pincode).slice(0, 3) + '***' : ''
+      },
+      customer: {
+        name: data.customer?.name || 'Customer'
+      }
+    };
+
+    return res.status(200).json({ success: true, order: sanitizedOrder });
+  } catch (err) {
+    console.error('[Track Order Route Error]:', err);
+    return res.status(500).json({ error: 'Server error retrieving order status.' });
+  }
+});
+
+// ------------------------------------------------------------------------------
 // EXPORTS FOR CLOUD FUNCTIONS
 // ------------------------------------------------------------------------------
 // 1. Unified Express API Cloud Function

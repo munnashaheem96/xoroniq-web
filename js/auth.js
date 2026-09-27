@@ -1,31 +1,72 @@
 // ==========================================================================
-// XORONIQ CAR CARE - ADMIN AUTHENTICATION
-// Firebase Auth Session State, Login, Logout & Route Guard
+// XORONIQ CAR CARE - SECURE ADMIN AUTHENTICATION
+// Strict Firebase Auth Session State, Authorized Roles & Route Guard
 // ==========================================================================
 
 import { adminSignIn, adminSignOut, onAdminAuthChange, sendAdminResetPassword } from './firebase.js';
 import { showToast } from './utils.js';
 
 /**
+ * Authorized Administrator Whitelist
+ * Includes business founders and designated admin emails
+ */
+export const AUTHORIZED_ADMIN_EMAILS = [
+  'munnashaheemperinchikkal@gmail.com',
+  'sanahuhaq0@gmail.com',
+  'tobesuccess96@gmail.com',
+  'xoroniq@gmail.com',
+  'admin@xoroniq.com'
+];
+
+/**
+ * Validates whether an email has verified administrative clearance
+ */
+export function isAuthorizedAdminEmail(email) {
+  if (!email) return false;
+  const clean = email.toLowerCase().trim();
+  if (AUTHORIZED_ADMIN_EMAILS.includes(clean)) return true;
+  if (clean.endsWith('@xoroniq.store') || clean.endsWith('@xoroniq.com')) return true;
+  return false;
+}
+
+/**
  * Route Guard for Admin Pages
+ * Strict Firebase Auth enforcement with zero bypass
  */
 export function requireAdminAuth() {
-  const localSession = localStorage.getItem('xoroniq_admin_session');
-  
-  onAdminAuthChange((user) => {
-    const isLoginPage = window.location.pathname.includes('login.html');
-    const isAuthenticated = Boolean(user || localSession);
+  // Purge any legacy demo or local session from localStorage immediately
+  localStorage.removeItem('xoroniq_admin_session');
 
-    if (!isAuthenticated && !isLoginPage) {
-      window.location.href = 'login.html';
-    } else if (isAuthenticated && isLoginPage) {
-      window.location.href = 'index.html';
+  onAdminAuthChange(async (user) => {
+    const isLoginPage = window.location.pathname.includes('login.html');
+
+    if (!user) {
+      if (!isLoginPage) {
+        window.location.replace('login.html');
+      }
+      return;
     }
 
-    if (user || localSession) {
-      const email = user ? user.email : JSON.parse(localSession || '{}').email;
-      const emailBadge = document.getElementById('admin-user-email');
-      if (emailBadge) emailBadge.textContent = email || 'admin@xoroniq.com';
+    // Verify authenticated user is an authorized administrator
+    if (!isAuthorizedAdminEmail(user.email)) {
+      console.warn('[Security Alert] Unauthorized admin access attempt rejected for:', user.email);
+      await adminSignOut();
+      if (!isLoginPage) {
+        window.location.replace('login.html?error=unauthorized');
+      }
+      return;
+    }
+
+    // If already authenticated admin and currently on login page, redirect to dashboard
+    if (isLoginPage) {
+      window.location.replace('index.html');
+      return;
+    }
+
+    // Update email badge in admin UI
+    const emailBadge = document.getElementById('admin-user-email');
+    if (emailBadge) {
+      emailBadge.textContent = user.email;
     }
   });
 }
@@ -34,16 +75,30 @@ export function requireAdminAuth() {
  * Initialize Admin Login Page
  */
 export function initAdminLoginPage() {
+  // Purge any legacy demo session
+  localStorage.removeItem('xoroniq_admin_session');
+
   const form = document.getElementById('admin-login-form');
   const emailInput = document.getElementById('admin-email');
   const passwordInput = document.getElementById('admin-password');
   const submitBtn = document.getElementById('admin-login-btn');
   const forgotBtn = document.getElementById('admin-forgot-btn');
 
-  // Check if already authenticated
+  // Check if redirected with unauthorized error
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('error') === 'unauthorized') {
+    const errorBanner = document.getElementById('admin-login-error-banner');
+    if (errorBanner) {
+      errorBanner.style.display = 'block';
+    } else {
+      showToast('Access denied: Your account lacks administrator privileges.', 'error');
+    }
+  }
+
+  // Check if already authenticated as valid admin
   onAdminAuthChange((user) => {
-    if (user) {
-      window.location.href = 'index.html';
+    if (user && isAuthorizedAdminEmail(user.email)) {
+      window.location.replace('index.html');
     }
   });
 
@@ -62,30 +117,31 @@ export function initAdminLoginPage() {
       submitBtn.innerHTML = `<span class="spinner-border spinner-border-sm me-2"></span> AUTHENTICATING...`;
 
       try {
-        await adminSignIn(email, password);
-        showToast('Authentication successful. Welcome, Admin.', 'success');
-        setTimeout(() => {
-          window.location.href = 'index.html';
-        }, 600);
-      } catch (err) {
-        console.warn('Firebase login attempt:', err);
-        // If credentials are valid admin demo test
-        if ((email === 'admin@xoroniq.com' || email.includes('admin')) && password.length >= 6) {
-          showToast('Authenticated in Local Admin Mode.', 'success');
-          localStorage.setItem('xoroniq_admin_session', JSON.stringify({ email: email, role: 'admin', time: Date.now() }));
-          setTimeout(() => {
-            window.location.href = 'index.html';
-          }, 600);
+        const userCredential = await adminSignIn(email, password);
+        const signedInEmail = userCredential.user?.email || email;
+
+        if (!isAuthorizedAdminEmail(signedInEmail)) {
+          await adminSignOut();
+          submitBtn.disabled = false;
+          submitBtn.innerHTML = `SIGN IN TO DASHBOARD <i class="bi bi-arrow-right ms-2"></i>`;
+          showToast('Access Denied: Account lacks administrative privileges.', 'error');
           return;
         }
 
+        showToast('Authentication successful. Welcome, Admin.', 'success');
+        setTimeout(() => {
+          window.location.replace('index.html');
+        }, 500);
+      } catch (err) {
+        console.warn('Admin authentication failed:', err);
         submitBtn.disabled = false;
         submitBtn.innerHTML = `SIGN IN TO DASHBOARD <i class="bi bi-arrow-right ms-2"></i>`;
         
-        let msg = 'Invalid admin credentials.';
-        if (err.code === 'auth/user-not-found') msg = 'No admin found with this email.';
+        let msg = 'Invalid administrator credentials.';
+        if (err.code === 'auth/user-not-found') msg = 'No administrator account found with this email.';
         if (err.code === 'auth/wrong-password') msg = 'Incorrect password.';
-        if (err.code === 'auth/invalid-credential') msg = 'Invalid email or password. Use demo mode or create user in Firebase.';
+        if (err.code === 'auth/invalid-credential') msg = 'Invalid email or password.';
+        if (err.code === 'auth/too-many-requests') msg = 'Too many failed attempts. Please try again later.';
         
         showToast(msg, 'error');
       }
@@ -124,7 +180,7 @@ export function initAdminLogout() {
       }
       showToast('Signed out of admin session.', 'info');
       setTimeout(() => {
-        window.location.href = 'login.html';
+        window.location.replace('login.html');
       }, 400);
     });
   });

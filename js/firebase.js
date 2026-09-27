@@ -490,32 +490,39 @@ export async function getOrderById(orderId) {
 }
 
 /**
- * Search orders by Order ID or phone or email
+ * Search orders securely by Order ID or customer phone
+ * Only queries matching records to prevent data exposure
  */
 export async function searchOrders(searchTerm) {
+  if (!searchTerm) return [];
+  const term = searchTerm.trim();
+
+  // 1. Try exact orderId match
   try {
-    const ordersRef = collection(db, 'orders');
-    const snapshot = await getDocs(ordersRef);
-    const results = [];
-    const term = searchTerm.toLowerCase().trim();
-
-    snapshot.forEach(docSnap => {
-      const data = docSnap.data();
-      const orderIdMatch = (data.orderId || '').toLowerCase().includes(term);
-      const emailMatch = (data.customer?.email || '').toLowerCase().includes(term);
-      const phoneMatch = (data.customer?.phone || '').includes(term);
-      const nameMatch = (data.customer?.name || '').toLowerCase().includes(term);
-
-      if (orderIdMatch || emailMatch || phoneMatch || nameMatch) {
-        results.push({ id: docSnap.id, ...data });
-      }
-    });
-
-    return results;
+    const qOrder = query(collection(db, 'orders'), where('orderId', '==', term));
+    const snap = await getDocs(qOrder);
+    if (!snap.empty) {
+      return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    }
   } catch (error) {
-    console.error('Error searching orders:', error);
-    return [];
+    // Continue to phone search
   }
+
+  // 2. Try 10-digit mobile number match
+  const cleanPhone = term.replace(/\D/g, '');
+  if (cleanPhone.length >= 10) {
+    try {
+      const qPhone = query(collection(db, 'orders'), where('customer.phone', '==', cleanPhone));
+      const snapPhone = await getDocs(qPhone);
+      if (!snapPhone.empty) {
+        return snapPhone.docs.map(d => ({ id: d.id, ...d.data() }));
+      }
+    } catch (error) {
+      // Return empty
+    }
+  }
+
+  return [];
 }
 
 /**
@@ -749,50 +756,44 @@ export async function saveUserProfile(uid, data) {
 export async function getUserOrders(email) {
   if (!email) return [];
   const cleanEmail = email.toLowerCase().trim();
+
+  // Query by customer.email
   try {
     const q1 = query(
       collection(db, 'orders'),
-      where('customer.email', '==', cleanEmail),
-      orderBy('createdAt', 'desc')
+      where('customer.email', '==', cleanEmail)
     );
     const snap1 = await getDocs(q1);
     if (!snap1.empty) {
-      return snap1.docs.map(d => ({ id: d.id, ...d.data() }));
-    }
-  } catch (e) {
-    // Continue to next attempt
-  }
-
-  try {
-    const q2 = query(
-      collection(db, 'orders'),
-      where('customerEmail', '==', cleanEmail),
-      orderBy('createdAt', 'desc')
-    );
-    const snap2 = await getDocs(q2);
-    if (!snap2.empty) {
-      return snap2.docs.map(d => ({ id: d.id, ...d.data() }));
-    }
-  } catch (e) {
-    // Continue to fallback
-  }
-
-  // Fallback client-side filter
-  try {
-    const all = await getDocs(collection(db, 'orders'));
-    return all.docs
-      .map(d => ({ id: d.id, ...d.data() }))
-      .filter(o => {
-        const orderEmail = (o.customer?.email || o.customerEmail || '').toLowerCase().trim();
-        return orderEmail === cleanEmail;
-      })
-      .sort((a, b) => {
+      const list = snap1.docs.map(d => ({ id: d.id, ...d.data() }));
+      return list.sort((a, b) => {
         const ta = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : new Date(a.createdAt || 0).getTime();
         const tb = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : new Date(b.createdAt || 0).getTime();
         return tb - ta;
       });
-  } catch (err) {
-    console.warn('getUserOrders fallback error:', err);
-    return [];
+    }
+  } catch (e) {
+    // Continue to customerEmail query
   }
+
+  // Query by customerEmail
+  try {
+    const q2 = query(
+      collection(db, 'orders'),
+      where('customerEmail', '==', cleanEmail)
+    );
+    const snap2 = await getDocs(q2);
+    if (!snap2.empty) {
+      const list = snap2.docs.map(d => ({ id: d.id, ...d.data() }));
+      return list.sort((a, b) => {
+        const ta = a.createdAt?.toDate ? a.createdAt.toDate().getTime() : new Date(a.createdAt || 0).getTime();
+        const tb = b.createdAt?.toDate ? b.createdAt.toDate().getTime() : new Date(b.createdAt || 0).getTime();
+        return tb - ta;
+      });
+    }
+  } catch (e) {
+    // Failed to query
+  }
+
+  return [];
 }
