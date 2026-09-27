@@ -64,9 +64,30 @@ export function initTrackingPage() {
     `;
 
     try {
-      let order = await getOrderById(term);
+      let order = null;
+      const cleanTerm = term.trim();
+
+      // 1. Try secure backend tracking API first
+      try {
+        const isPhone = /^\d{10}$/.test(cleanTerm.replace(/\D/g, ''));
+        const queryParam = isPhone ? `phone=${encodeURIComponent(cleanTerm.replace(/\D/g, ''))}` : `orderId=${encodeURIComponent(cleanTerm)}`;
+        const res = await fetch(`${CONFIG.API_BASE_URL}/track-order?${queryParam}`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.success && data.order) {
+            order = data.order;
+          }
+        }
+      } catch (apiErr) {
+        console.warn('Backend tracking API attempt note:', apiErr);
+      }
+
+      // 2. Fallback to direct targeted queries
       if (!order) {
-        const results = await searchOrders(term);
+        order = await getOrderById(cleanTerm);
+      }
+      if (!order) {
+        const results = await searchOrders(cleanTerm);
         if (results.length > 0) order = results[0];
       }
 
@@ -75,7 +96,7 @@ export function initTrackingPage() {
           <div class="admin-card p-4 p-md-5 text-center">
             <i class="bi bi-search text-muted-custom display-4 mb-3"></i>
             <h4 class="font-heading text-black fw-bold">ORDER NOT FOUND</h4>
-            <p class="text-muted-custom small mb-4">No order matched "<strong>${term}</strong>". Please verify your Order ID or mobile number.</p>
+            <p class="text-muted-custom small mb-4">No order matched "<strong>${cleanTerm}</strong>". Please verify your Order ID or mobile number.</p>
             <a href="contact.html" class="btn btn-x-outline-accent btn-sm">CONTACT CONCIERGE</a>
           </div>
         `;
@@ -183,10 +204,10 @@ export function initTrackingPage() {
           <div class="col-md-6">
             <h5 class="font-heading text-black fw-bold mb-3">DESTINATION DETAILS</h5>
             <div class="p-3 bg-surface-custom rounded border border-secondary border-opacity-25 small">
-              <div class="text-black fw-bold">${order.customer?.name}</div>
-              <div class="text-muted-custom">${order.customer?.phone} • ${order.customer?.email}</div>
-              <div class="mt-2 text-dark">${order.shippingAddress?.address}</div>
-              <div class="text-dark">${order.shippingAddress?.city || ''}, ${order.shippingAddress?.state || ''} - ${order.shippingAddress?.pincode || ''}</div>
+              <div class="text-black fw-bold">${order.customer?.name || 'Customer'}</div>
+              ${order.customer?.phone || order.customer?.email ? `<div class="text-muted-custom">${[order.customer?.phone, order.customer?.email].filter(Boolean).join(' • ')}</div>` : ''}
+              ${order.shippingAddress?.address ? `<div class="mt-2 text-dark">${order.shippingAddress.address}</div>` : ''}
+              <div class="text-dark">${[order.shippingAddress?.city, order.shippingAddress?.state].filter(Boolean).join(', ')}${order.shippingAddress?.pincode ? ' - ' + order.shippingAddress.pincode : ''}</div>
             </div>
           </div>
 
