@@ -90,13 +90,7 @@ export function initCheckoutPage() {
     if (subtotalEl) subtotalEl.textContent = formatCurrency(totals.subtotal);
     
     if (shippingEl) {
-      if (totals.shipping === 0) {
-        shippingEl.innerHTML = '<span class="text-success fw-bold">FREE (Orders > ₹2,500)</span>';
-      } else if (totals.isKerala) {
-        shippingEl.innerHTML = '<span class="text-accent fw-bold">₹60 <small class="text-muted-custom fw-normal">(All Kerala)</small></span>';
-      } else {
-        shippingEl.innerHTML = `<span class="text-dark fw-bold">₹${totals.shipping} <small class="text-muted-custom fw-normal">(Rest of India)</small></span>`;
-      }
+      shippingEl.innerHTML = `<span class="text-dark fw-bold">${formatCurrency(totals.shipping)}</span>`;
     }
 
     // Ensure COD fee row is hidden
@@ -111,18 +105,9 @@ export function initCheckoutPage() {
     }
 
     if (pincodeNoticeEl) {
-      if (totals.shipping === 0) {
-        pincodeNoticeEl.innerHTML = '<span class="text-success small fw-semibold"><i class="bi bi-check-circle-fill me-1"></i> Order above ₹2,500 — Free Shipping Applied!</span>';
-        pincodeNoticeEl.style.display = 'block';
-      } else if (totals.isKerala) {
-        pincodeNoticeEl.innerHTML = '<span class="text-accent small fw-semibold"><i class="bi bi-geo-alt-fill me-1"></i> All Kerala Delivery: ₹60 Flat Rate</span>';
-        pincodeNoticeEl.style.display = 'block';
-      } else if (currentPincode.length === 6) {
-        pincodeNoticeEl.innerHTML = `<span class="text-muted-custom small"><i class="bi bi-truck me-1"></i> Rest of India Delivery: ₹${totals.shipping} (Free above ₹2,500)</span>`;
-        pincodeNoticeEl.style.display = 'block';
-      } else {
-        pincodeNoticeEl.style.display = 'none';
-      }
+      const itemCount = cart.reduce((sum, item) => sum + (item.quantity || 1), 0);
+      pincodeNoticeEl.innerHTML = `<span class="text-muted-custom small"><i class="bi bi-truck text-accent me-1"></i> Delivery Cash: ${formatCurrency(totals.shipping)} itemized for ${itemCount} item${itemCount > 1 ? 's' : ''}</span>`;
+      pincodeNoticeEl.style.display = 'block';
     }
   }
 
@@ -177,7 +162,7 @@ export function initCheckoutPage() {
           </div>
           <div>
             <div class="font-heading fw-bold text-black small">${item.name}</div>
-            <div class="text-muted-custom" style="font-size: 0.72rem;">SKU: ${item.sku || 'N/A'} • Delivery: ₹${item.deliveryFee !== undefined ? item.deliveryFee : 80}</div>
+            <div class="text-muted-custom" style="font-size: 0.72rem;">SKU: ${item.sku || 'N/A'} • Delivery Cash: ₹${item.deliveryFee !== undefined ? item.deliveryFee : 80} / unit (${formatCurrency((item.deliveryFee !== undefined ? item.deliveryFee : 80) * item.quantity)})</div>
           </div>
         </div>
         <div class="font-mono text-black fw-bold small">

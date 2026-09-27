@@ -52,15 +52,27 @@ async function getNextOrderId(db) {
 }
 
 /**
- * Calculate shipping charges server-side based on destination & subtotal
+ * Calculate shipping charges server-side based on destination & individual item delivery cash
+ * (Separate delivery cash for each item, configured via admin panel)
  * @param {number} subtotal
  * @param {Object} shippingAddress
+ * @param {Array} items
  * @returns {number}
  */
-function calculateServerShipping(subtotal, shippingAddress = {}) {
-  // Free shipping above ₹2,500
-  if (subtotal >= 2500) {
-    return 0;
+function calculateServerShipping(subtotal, shippingAddress = {}, items = []) {
+  // If items array is provided, calculate separate delivery cash per item
+  if (Array.isArray(items) && items.length > 0) {
+    const isKerala = (shippingAddress.state || '').toLowerCase().includes('kerala') ||
+      String(shippingAddress.pincode || '').startsWith('67') ||
+      String(shippingAddress.pincode || '').startsWith('68') ||
+      String(shippingAddress.pincode || '').startsWith('69');
+
+    return items.reduce((sum, item) => {
+      const itemFee = (item.deliveryFee !== undefined && item.deliveryFee !== null && !isNaN(Number(item.deliveryFee)))
+        ? Number(item.deliveryFee)
+        : (isKerala ? 60 : 80);
+      return sum + (itemFee * (Math.max(1, parseInt(item.quantity, 10) || 1)));
+    }, 0);
   }
 
   const state = (shippingAddress.state || '').toLowerCase();
@@ -68,12 +80,7 @@ function calculateServerShipping(subtotal, shippingAddress = {}) {
 
   // All Kerala delivery is flat ₹60 (PIN starts with 67, 68, or 69)
   const isKerala = state.includes('kerala') || pin.startsWith('67') || pin.startsWith('68') || pin.startsWith('69');
-  if (isKerala) {
-    return 60;
-  }
-
-  // Rest of India standard shipping is ₹80
-  return 80;
+  return isKerala ? 60 : 80;
 }
 
 /**
@@ -95,11 +102,14 @@ async function createPendingOrder(db, {
     throw new Error('Order must contain at least one product item.');
   }
 
-  // Calculate clean numeric subtotal from validated item prices
+  // Calculate clean numeric subtotal and store individual delivery cash per item
   let subtotal = 0;
   const sanitizedItems = items.map(item => {
     const price = Math.max(0, Number(item.price) || 0);
     const qty = Math.max(1, parseInt(item.quantity, 10) || 1);
+    const itemDeliveryFee = (item.deliveryFee !== undefined && item.deliveryFee !== null && !isNaN(Number(item.deliveryFee)))
+      ? Number(item.deliveryFee)
+      : 80;
     subtotal += price * qty;
 
     return {
@@ -108,12 +118,13 @@ async function createPendingOrder(db, {
       sku: String(item.sku || 'XOR-PRO').trim(),
       price: price,
       quantity: qty,
+      deliveryFee: itemDeliveryFee,
       image: String(item.image || '')
     };
   });
 
   const numericDiscount = Math.max(0, Number(discount) || 0);
-  const calculatedShipping = calculateServerShipping(subtotal, shippingAddress);
+  const calculatedShipping = calculateServerShipping(subtotal, shippingAddress, items);
   const total = Math.max(0, subtotal + calculatedShipping - numericDiscount);
 
   // Generate unique human-readable order ID if not passed

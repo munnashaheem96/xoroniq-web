@@ -58,11 +58,13 @@ function getCustomerEmailTemplate(order) {
     const price = Number(item.price) || 0;
     const itemTotal = price * qty;
 
+    const itemDelivery = item.deliveryFee !== undefined ? Number(item.deliveryFee) : null;
+
     return `
       <tr>
         <td style="padding: 14px 16px; border-bottom: 1px solid #1e293b; color: #f8fafc; font-size: 14px; vertical-align: middle;">
           <div style="font-weight: 700; color: #ffffff;">${itemName}</div>
-          <div style="font-size: 11px; color: #94a3b8; font-family: monospace; margin-top: 2px;">SKU: ${sku}</div>
+          <div style="font-size: 11px; color: #94a3b8; font-family: monospace; margin-top: 2px;">SKU: ${sku}${itemDelivery !== null ? ` • Delivery: ${formatPrice(itemDelivery)}` : ''}</div>
         </td>
         <td style="padding: 14px 16px; border-bottom: 1px solid #1e293b; color: #cbd5e1; font-size: 14px; text-align: center; vertical-align: middle;">
           ${qty}
@@ -81,7 +83,8 @@ function getCustomerEmailTemplate(order) {
   const itemsText = items.map((item, idx) => {
     const qty = Number(item.quantity) || 1;
     const price = Number(item.price) || 0;
-    return `• ${item.name} (Qty: ${qty}) - ${formatPrice(price * qty)} [SKU: ${item.sku || 'N/A'}]`;
+    const itemDelivery = item.deliveryFee !== undefined ? ` • Delivery: ₹${item.deliveryFee}` : '';
+    return `• ${item.name} (Qty: ${qty}) - ${formatPrice(price * qty)} [SKU: ${item.sku || 'N/A'}${itemDelivery}]`;
   }).join('\n');
 
   const html = `
@@ -202,7 +205,7 @@ function getCustomerEmailTemplate(order) {
                     <td style="padding: 10px 16px 4px 16px; text-align: right; font-size: 13px; font-family: monospace; color: #f8fafc;">${formatPrice(subtotal)}</td>
                   </tr>
                   <tr>
-                    <td colspan="3" style="padding: 4px 16px; text-align: right; font-size: 13px; color: #94a3b8;">Shipping (Delhivery):</td>
+                    <td colspan="3" style="padding: 4px 16px; text-align: right; font-size: 13px; color: #94a3b8;">Delivery Cash (Delhivery Express):</td>
                     <td style="padding: 4px 16px; text-align: right; font-size: 13px; font-family: monospace; color: #f8fafc;">${shipping === 0 ? '<span style="color:#4ade80; font-weight:bold;">FREE</span>' : formatPrice(shipping)}</td>
                   </tr>
                   ${discount > 0 ? `

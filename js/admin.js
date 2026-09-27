@@ -338,9 +338,12 @@ export async function initAdminProductsPage() {
             ${p.compareAtPrice > p.price ? `<div class="text-muted-custom text-decoration-line-through small">${formatCurrency(p.compareAtPrice)}</div>` : ''}
           </td>
           <td>
-            <span class="badge bg-light text-dark border">
-              <i class="bi bi-truck text-accent me-1"></i>₹${p.deliveryFee !== undefined ? p.deliveryFee : 80}
-            </span>
+            <button class="btn btn-sm btn-link p-0 text-decoration-none edit-delivery-fee-btn" data-id="${p.id}" title="Click to edit delivery cash for this item">
+              <span class="badge bg-light text-dark border font-mono">
+                <i class="bi bi-truck text-accent me-1"></i>₹${p.deliveryFee !== undefined ? p.deliveryFee : 80}
+                <i class="bi bi-pencil-fill ms-1 text-muted-custom" style="font-size: 0.65rem;"></i>
+              </span>
+            </button>
           </td>
           <td>
             <span class="badge ${p.stock > 10 ? 'bg-success bg-opacity-25 text-success' : p.stock > 0 ? 'bg-warning bg-opacity-25 text-warning' : 'bg-danger bg-opacity-25 text-danger'}">
@@ -400,11 +403,22 @@ export async function initAdminProductsPage() {
       });
     });
 
-    tableBody.querySelectorAll('.edit-product-btn').forEach(btn => {
+    tableBody.querySelectorAll('.edit-product-btn, .edit-delivery-fee-btn').forEach(btn => {
       btn.addEventListener('click', () => {
         const id = btn.getAttribute('data-id');
         const prod = allProducts.find(p => p.id === id);
-        if (prod) openProductModal(prod);
+        if (prod) {
+          openProductModal(prod);
+          if (btn.classList.contains('edit-delivery-fee-btn')) {
+            setTimeout(() => {
+              const delInp = document.getElementById('p-delivery-fee');
+              if (delInp) {
+                delInp.focus();
+                delInp.select();
+              }
+            }, 350);
+          }
+        }
       });
     });
 

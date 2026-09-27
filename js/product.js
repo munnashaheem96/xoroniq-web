@@ -103,7 +103,8 @@ function renderProductDetails(product) {
   // Delivery info
   const deliveryInfoEl = document.getElementById('product-detail-delivery-info');
   if (deliveryInfoEl) {
-    deliveryInfoEl.textContent = `Kerala Delivery: ₹60 (Rest of India: ₹80, Free > ₹2,500)`;
+    const fee = product.deliveryFee !== undefined ? product.deliveryFee : 80;
+    deliveryInfoEl.textContent = `Delivery Cash: ₹${fee} (Configured per item on Admin Panel)`;
   }
 
   // Short & Long Descriptions

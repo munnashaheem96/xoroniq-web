@@ -46,31 +46,17 @@ export function getCartTotals(pincode = null, paymentMethod = 'RAZORPAY', state 
 
   const isKeralaDestination = isKeralaAddress(pincode, state, city);
 
-  if (subtotal > 0) {
-    if (subtotal >= CONFIG.STORE.FREE_SHIPPING_THRESHOLD) {
-      shipping = 0;
-      freeShippingRemaining = 0;
-      isKerala = isKeralaDestination;
-      isLocalDelivery = isKeralaDestination;
-    } else if (isKeralaDestination) {
-      shipping = CONFIG.STORE.KERALA_SHIPPING_FEE || 60; // All Kerala delivery ₹60
-      isKerala = true;
-      isLocalDelivery = true;
-      freeShippingRemaining = Math.max(0, CONFIG.STORE.FREE_SHIPPING_THRESHOLD - subtotal);
-    } else if (pincode && String(pincode).trim().length === 6) {
-      // Confirmed outside Kerala 6-digit PIN
-      shipping = CONFIG.STORE.STANDARD_SHIPPING_FEE || 80;
-      isKerala = false;
-      isLocalDelivery = false;
-      freeShippingRemaining = Math.max(0, CONFIG.STORE.FREE_SHIPPING_THRESHOLD - subtotal);
-    } else {
-      // Default initial delivery calculation when destination not yet confirmed:
-      // Since XORONIQ is Kerala-based, default delivery rate is Kerala rate ₹60
-      shipping = CONFIG.STORE.KERALA_SHIPPING_FEE || 60;
-      isKerala = true;
-      isLocalDelivery = true;
-      freeShippingRemaining = Math.max(0, CONFIG.STORE.FREE_SHIPPING_THRESHOLD - subtotal);
-    }
+  isKerala = isKeralaDestination;
+  isLocalDelivery = isKeralaDestination;
+
+  // Calculate separate delivery cash for every item in cart (set on admin panel)
+  if (cart.length > 0) {
+    shipping = cart.reduce((sum, item) => {
+      const itemFee = (item.deliveryFee !== undefined && item.deliveryFee !== null && !isNaN(Number(item.deliveryFee)))
+        ? Number(item.deliveryFee)
+        : (isKeralaDestination ? (CONFIG.STORE.KERALA_SHIPPING_FEE || 60) : (CONFIG.STORE.STANDARD_SHIPPING_FEE || 80));
+      return sum + (itemFee * (item.quantity || 1));
+    }, 0);
   }
 
   // Cash on Delivery extra ₹20 fee

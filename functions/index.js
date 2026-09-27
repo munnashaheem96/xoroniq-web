@@ -16,7 +16,7 @@ if (!admin.apps.length) {
 const db = admin.firestore();
 
 const { createRazorpayOrder, verifyPaymentSignature, verifyWebhookSignature } = require('./razorpayService');
-const { createPendingOrder, processSuccessfulOrderPayment, resendOrderEmails, getNextOrderId } = require('./orderService');
+const { createPendingOrder, processSuccessfulOrderPayment, resendOrderEmails, getNextOrderId, calculateServerShipping } = require('./orderService');
 
 // ------------------------------------------------------------------------------
 // EXPRESS APP CONFIGURATION
@@ -80,12 +80,12 @@ app.post('/api/create-order', async (req, res) => {
     // 1. Generate unique server-side XORONIQ Order ID (XRQ-YYYY-XXXXX)
     const orderId = await getNextOrderId(db);
 
-    // 2. Pre-calculate total for Razorpay order
+    // 2. Pre-calculate total for Razorpay order (itemized separate delivery cash)
     let subtotal = 0;
     items.forEach(i => {
       subtotal += (Number(i.price) || 0) * (Number(i.quantity) || 1);
     });
-    const shipping = subtotal >= 2500 ? 0 : ((shippingAddress.state || '').toLowerCase().includes('kerala') || String(shippingAddress.pincode).startsWith('67') || String(shippingAddress.pincode).startsWith('68') || String(shippingAddress.pincode).startsWith('69') ? 60 : 80);
+    const shipping = calculateServerShipping(subtotal, shippingAddress, items);
     const total = Math.max(0, subtotal + shipping - (Number(discount) || 0));
 
     // 3. Create Order in Razorpay

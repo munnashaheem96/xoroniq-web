@@ -310,13 +310,7 @@
       if (subtotalEl) subtotalEl.textContent = formatCurrency(pinTotals.subtotal);
       
       if (shippingEl) {
-        if (pinTotals.shipping === 0) {
-          shippingEl.innerHTML = '<span class="text-success fw-bold">FREE (> ₹2,500)</span>';
-        } else if (pinTotals.isKerala || pinTotals.isLocalDelivery) {
-          shippingEl.innerHTML = '<span class="text-accent fw-bold">₹60 <small class="text-muted-custom fw-normal">(All Kerala)</small></span>';
-        } else {
-          shippingEl.innerHTML = `<span class="text-dark fw-bold">₹${pinTotals.shipping} <small class="text-muted-custom fw-normal">(Rest of India)</small></span>`;
-        }
+        shippingEl.innerHTML = `<span class="text-accent font-mono fw-bold">₹${pinTotals.shipping}</span>`;
       }
       
       if (totalEl) totalEl.textContent = formatCurrency(pinTotals.total);

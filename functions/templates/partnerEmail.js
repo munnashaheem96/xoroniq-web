@@ -57,12 +57,13 @@ function getPartnerEmailTemplate(order, frontendUrl = 'https://xoroniq.store') {
     const qty = Number(item.quantity) || 1;
     const price = Number(item.price) || 0;
     const itemTotal = price * qty;
+    const itemDelivery = item.deliveryFee !== undefined ? Number(item.deliveryFee) : null;
 
     return `
       <tr>
         <td style="padding: 12px 14px; border-bottom: 1px solid #1e293b; color: #ffffff; font-size: 14px;">
           <strong>${itemName}</strong>
-          <div style="font-size: 11px; color: #94a3b8; font-family: monospace;">SKU: ${sku}</div>
+          <div style="font-size: 11px; color: #94a3b8; font-family: monospace;">SKU: ${sku}${itemDelivery !== null ? ` • Delivery: ${formatPrice(itemDelivery)}` : ''}</div>
         </td>
         <td style="padding: 12px 14px; border-bottom: 1px solid #1e293b; color: #f8fafc; font-size: 14px; text-align: center; font-weight: bold;">
           ${qty}
@@ -81,7 +82,8 @@ function getPartnerEmailTemplate(order, frontendUrl = 'https://xoroniq.store') {
   const itemsText = items.map((item) => {
     const qty = Number(item.quantity) || 1;
     const price = Number(item.price) || 0;
-    return `Product: ${item.name}\nQuantity: ${qty}\nUnit Price: ${formatPrice(price)}\nSubtotal: ${formatPrice(price * qty)}`;
+    const itemDelivery = item.deliveryFee !== undefined ? `\nDelivery Cash: ${formatPrice(item.deliveryFee)}` : '';
+    return `Product: ${item.name}\nQuantity: ${qty}\nUnit Price: ${formatPrice(price)}${itemDelivery}\nSubtotal: ${formatPrice(price * qty)}`;
   }).join('\n\n');
 
   const html = `
@@ -198,7 +200,7 @@ function getPartnerEmailTemplate(order, frontendUrl = 'https://xoroniq.store') {
                     <td style="padding: 10px 14px 4px 14px; text-align: right; font-size: 13px; font-family: monospace; color: #f8fafc;">${formatPrice(subtotal)}</td>
                   </tr>
                   <tr>
-                    <td colspan="3" style="padding: 4px 14px; text-align: right; font-size: 13px; color: #94a3b8;">Shipping:</td>
+                    <td colspan="3" style="padding: 4px 14px; text-align: right; font-size: 13px; color: #94a3b8;">Total Delivery Cash:</td>
                     <td style="padding: 4px 14px; text-align: right; font-size: 13px; font-family: monospace; color: #f8fafc;">${shipping === 0 ? '<span style="color:#4ade80;">FREE</span>' : formatPrice(shipping)}</td>
                   </tr>
                   ${discount > 0 ? `

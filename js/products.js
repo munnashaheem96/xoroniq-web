@@ -136,13 +136,20 @@ function renderFilteredProducts(containerId, options = {}) {
           <div class="product-card-body">
             <a href="product.html?id=${product.id}" class="product-card-title">${product.name}</a>
             <p class="product-card-desc">${product.shortDescription || product.description || 'Professional detailing formulation.'}</p>
-            <div class="product-card-pricing">
-              ${isSoon 
-                ? `<span class="price-current font-mono fw-bold letter-spacing-wide text-dark">₹XXXX</span>`
-                : `<span class="price-current">${formatCurrency(product.price)}</span>`
-              }
-              ${!isSoon && product.compareAtPrice > product.price ? `<span class="price-compare">${formatCurrency(product.compareAtPrice)}</span>` : ''}
-              ${isSoon ? `<span class="badge bg-warning bg-opacity-25 text-warning small ms-2">UPCOMING</span>` : ''}
+            <div class="d-flex align-items-center justify-content-between mb-2">
+              <div class="product-card-pricing m-0">
+                ${isSoon 
+                  ? `<span class="price-current font-mono fw-bold letter-spacing-wide text-dark">₹XXXX</span>`
+                  : `<span class="price-current">${formatCurrency(product.price)}</span>`
+                }
+                ${!isSoon && product.compareAtPrice > product.price ? `<span class="price-compare">${formatCurrency(product.compareAtPrice)}</span>` : ''}
+                ${isSoon ? `<span class="badge bg-warning bg-opacity-25 text-warning small ms-2">UPCOMING</span>` : ''}
+              </div>
+              ${!isSoon ? `
+                <span class="badge bg-light text-dark border small" title="Separate Delivery Cash set on Admin Panel">
+                  <i class="bi bi-truck text-accent me-1"></i>₹${product.deliveryFee !== undefined ? product.deliveryFee : 80}
+                </span>
+              ` : ''}
             </div>
             <div class="product-card-actions">
               ${isSoon 
@@ -164,6 +171,7 @@ function renderFilteredProducts(containerId, options = {}) {
   }).join('');
 
   // Attach card event listeners
+
   container.querySelectorAll('.add-cart-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
       e.preventDefault();
@@ -296,6 +304,10 @@ export async function openQuickViewModal(productId) {
           }
           ${!isSoon && product.compareAtPrice > product.price ? `<span class="price-compare">${formatCurrency(product.compareAtPrice)}</span>` : ''}
           ${isSoon ? `<span class="badge bg-warning bg-opacity-25 text-warning small ms-2">UPCOMING</span>` : ''}
+        <div class="mb-3">
+          <span class="badge bg-light text-dark border small">
+            <i class="bi bi-truck text-accent me-1"></i>Delivery Cash: ₹${product.deliveryFee !== undefined ? product.deliveryFee : 80}
+          </span>
         </div>
         <p class="text-body small mb-4">${product.description || product.shortDescription || 'Engineered for exceptional surface protection and gloss.'}</p>
         
@@ -337,19 +349,28 @@ export async function openQuickViewModal(productId) {
 
   let qty = 1;
   const qtyValEl = document.getElementById('modal-qty-val');
-  document.getElementById('modal-qty-minus').addEventListener('click', () => {
-    if (qty > 1) {
-      qty--;
-      qtyValEl.textContent = qty;
-    }
-  });
-  document.getElementById('modal-qty-plus').addEventListener('click', () => {
-    qty++;
-    qtyValEl.textContent = qty;
-  });
+  const minusBtn = document.getElementById('modal-qty-minus');
+  const plusBtn = document.getElementById('modal-qty-plus');
+  const addCartBtn = document.getElementById('modal-add-cart-btn');
 
-  document.getElementById('modal-add-cart-btn').addEventListener('click', () => {
-    addToCart(product, qty);
-    bsModal.hide();
-  });
+  if (minusBtn) {
+    minusBtn.addEventListener('click', () => {
+      if (qty > 1) {
+        qty--;
+        if (qtyValEl) qtyValEl.textContent = qty;
+      }
+    });
+  }
+  if (plusBtn) {
+    plusBtn.addEventListener('click', () => {
+      qty++;
+      if (qtyValEl) qtyValEl.textContent = qty;
+    });
+  }
+  if (addCartBtn) {
+    addCartBtn.addEventListener('click', () => {
+      addToCart(product, qty);
+      bsModal.hide();
+    });
+  }
 }
