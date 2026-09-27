@@ -209,6 +209,10 @@
           </div>
 
           <div class="d-flex align-items-center flex-wrap gap-2">
+            <button class="btn btn-danger btn-sm fw-bold d-flex align-items-center gap-1 shadow-sm px-3" id="bulk-delete-btn" title="Permanently delete selected orders">
+              <i class="bi bi-trash3-fill"></i> Delete Selected
+            </button>
+
             <div class="input-group input-group-sm" style="width: auto;">
               <span class="input-group-text bg-secondary border-0 text-white">Status:</span>
               <select id="bulk-status-select" class="form-select form-select-sm bg-dark text-white border-0">
@@ -224,10 +228,6 @@
             <button class="btn btn-outline-light btn-sm" id="bulk-export-btn" title="Export only selected orders">
               <i class="bi bi-download me-1"></i> Export Selected
             </button>
-
-            <button class="btn btn-danger btn-sm fw-bold d-flex align-items-center gap-1" id="bulk-delete-btn" title="Permanently delete selected orders">
-              <i class="bi bi-trash3-fill"></i> Delete Selected
-            </button>
           </div>
         </div>
 
@@ -237,18 +237,18 @@
             <table class="table-custom-dark mb-0">
               <thead>
                 <tr>
-                  <th style="width: 40px;">
+                  <th style="width: 36px;">
                     <input type="checkbox" class="form-check-input form-check-input-custom" id="select-all-orders" title="Select all visible orders">
                   </th>
                   <th>Order ID</th>
                   <th>Customer</th>
-                  <th>Date &amp; Destination</th>
+                  <th>Date &amp; City</th>
                   <th>Items</th>
                   <th>Total</th>
                   <th>Status</th>
-                  <th>Email Status</th>
-                  <th>Delhivery Tracking / AWB</th>
-                  <th style="min-width: 170px;">Actions</th>
+                  <th>Email</th>
+                  <th>Delhivery AWB</th>
+                  <th class="th-actions text-end" style="min-width: 220px;">Actions &amp; Delete</th>
                 </tr>
               </thead>
               <tbody id="admin-orders-table-body">

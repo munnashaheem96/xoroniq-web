@@ -119,7 +119,7 @@
 }
 
 .admin-content-wrap {
-  padding: 2.5rem;
+  padding: 1.5rem 2rem;
   flex-grow: 1;
 }
 
@@ -178,8 +178,11 @@
   background: #ffffff;
   border: 1px solid var(--x-border);
   border-radius: var(--x-radius);
-  overflow: hidden;
   box-shadow: var(--x-shadow-card);
+}
+
+.admin-card .table-responsive {
+  border-radius: var(--x-radius);
 }
 
 .admin-card-header {
@@ -195,31 +198,64 @@
   width: 100%;
   margin: 0;
   color: var(--x-text-body);
-  border-collapse: collapse;
+  border-collapse: separate !important;
+  border-spacing: 0;
 }
 
 .table-custom-dark th {
   background: var(--x-bg-alt);
   color: var(--x-text-main);
   font-family: var(--x-font-heading);
-  font-size: 0.75rem;
+  font-size: 0.72rem;
   font-weight: 700;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.06em;
   text-transform: uppercase;
-  padding: 1rem 1.5rem;
+  padding: 0.65rem 0.75rem;
   border-bottom: 1px solid var(--x-border);
+  white-space: nowrap;
 }
 
 .table-custom-dark td {
-  padding: 1rem 1.5rem;
+  padding: 0.65rem 0.75rem;
   vertical-align: middle;
   border-bottom: 1px solid var(--x-border);
-  font-size: 0.88rem;
+  font-size: 0.82rem;
   background: #ffffff;
 }
 
 .table-custom-dark tr:hover td {
-  background: var(--x-bg-alt);
+  background: #f8fafc;
+}
+
+/* Sticky Actions Column - Always visible on screen */
+.table-custom-dark th.th-actions,
+.table-custom-dark td.actions-cell {
+  position: sticky !important;
+  right: 0 !important;
+  background: #ffffff !important;
+  z-index: 10 !important;
+  box-shadow: -6px 0 10px rgba(0, 0, 0, 0.08) !important;
+  border-left: 1px solid var(--x-border);
+  min-width: 220px;
+  text-align: right;
+}
+
+.table-custom-dark th.th-actions {
+  background: var(--x-bg-alt) !important;
+  z-index: 11 !important;
+}
+
+.table-custom-dark tr:hover td.actions-cell {
+  background: #f1f5f9 !important;
+}
+
+.delete-single-order-btn {
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.delete-single-order-btn:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(220, 38, 38, 0.25) !important;
 }
 
 /* Status Badges */

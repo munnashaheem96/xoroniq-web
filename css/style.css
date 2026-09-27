@@ -1473,13 +1473,20 @@ p {
 }
 
 /* High-Contrast Tables */
-.table-custom-dark,
 .table-custom-light,
 .table {
   width: 100%;
   margin: 0;
   color: var(--x-text-body);
   border-collapse: collapse;
+}
+
+.table-custom-dark {
+  width: 100%;
+  margin: 0;
+  color: var(--x-text-body);
+  border-collapse: separate;
+  border-spacing: 0;
 }
 
 .table-custom-dark th,

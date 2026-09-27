@@ -533,14 +533,19 @@ export async function initAdminOrdersPage() {
               </button>
             `}
           </td>
-          <td>
-            <div class="d-flex align-items-center gap-1">
+          <td class="actions-cell text-end">
+            <div class="d-inline-flex align-items-center gap-1 justify-content-end">
               <!-- View Details -->
-              <button class="btn btn-x-outline btn-sm view-order-modal-btn py-1 px-2" data-id="${order.id}" title="View Order Details">
+              <button class="btn btn-light border btn-sm view-order-modal-btn py-1 px-2" data-id="${order.id}" title="View Order Details">
                 <i class="bi bi-eye"></i>
               </button>
+              <!-- Delete Order -->
+              <button class="btn btn-danger btn-sm delete-single-order-btn py-1 px-2 fw-semibold d-inline-flex align-items-center gap-1 shadow-sm text-white" data-id="${order.id}" title="Permanently Delete Order">
+                <i class="bi bi-trash3-fill"></i>
+                <span>Delete</span>
+              </button>
               <!-- Print Packing Slip / Invoice -->
-              <button class="btn btn-x-outline btn-sm print-order-slip-btn py-1 px-2" data-id="${order.id}" title="Print Packing Slip / Tax Invoice">
+              <button class="btn btn-light border btn-sm print-order-slip-btn py-1 px-2" data-id="${order.id}" title="Print Packing Slip / Tax Invoice">
                 <i class="bi bi-printer"></i>
               </button>
               <!-- WhatsApp Message -->
@@ -548,12 +553,8 @@ export async function initAdminOrdersPage() {
                 <i class="bi bi-whatsapp"></i>
               </button>
               <!-- Sync Sheet -->
-              <button class="btn btn-x-outline btn-sm sync-order-sheet-btn py-1 px-2" data-id="${order.id}" title="Push to Google Sheet">
+              <button class="btn btn-light border btn-sm sync-order-sheet-btn py-1 px-2" data-id="${order.id}" title="Push to Google Sheet">
                 <i class="bi bi-file-earmark-spreadsheet text-success"></i>
-              </button>
-              <!-- Delete Order -->
-              <button class="btn btn-outline-danger btn-sm delete-single-order-btn py-1 px-2" data-id="${order.id}" title="Permanently Delete Order">
-                <i class="bi bi-trash3"></i>
               </button>
             </div>
           </td>
@@ -1256,9 +1257,17 @@ export async function initAdminOrdersPage() {
         <div class="modal fade" id="admin-order-modal" tabindex="-1">
           <div class="modal-dialog modal-dialog-centered modal-lg">
             <div class="modal-content modal-content-custom">
-              <div class="modal-header border-secondary border-opacity-25">
-                <h5 class="modal-title font-heading text-black fw-bold" id="admin-order-modal-title">ORDER DETAILS</h5>
-                <button type="button" class="btn-close-custom" data-bs-dismiss="modal"><i class="bi bi-x-lg"></i></button>
+              <div class="modal-header border-secondary border-opacity-25 d-flex justify-content-between align-items-center">
+                <div class="d-flex align-items-center gap-2">
+                  <h5 class="modal-title font-heading text-black fw-bold mb-0" id="admin-order-modal-title">ORDER DETAILS</h5>
+                  <span class="badge bg-light text-muted-custom border font-mono" id="admin-order-modal-doc-id" style="font-size: 0.72rem;"></span>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                  <button type="button" class="btn btn-danger btn-sm fw-bold d-inline-flex align-items-center gap-1 shadow-sm modal-header-delete-btn" id="modal-header-delete-btn" title="Permanently delete this order">
+                    <i class="bi bi-trash3-fill"></i> Delete Order
+                  </button>
+                  <button type="button" class="btn-close-custom" data-bs-dismiss="modal"><i class="bi bi-x-lg"></i></button>
+                </div>
               </div>
               <div class="modal-body p-4" id="admin-order-modal-body"></div>
             </div>
@@ -1271,6 +1280,16 @@ export async function initAdminOrdersPage() {
 
     const modalTitle = document.getElementById('admin-order-modal-title');
     if (modalTitle) modalTitle.textContent = `ORDER #${order.orderId}`;
+
+    const modalDocId = document.getElementById('admin-order-modal-doc-id');
+    if (modalDocId) modalDocId.textContent = order.id;
+
+    const modalHeaderDeleteBtn = modalEl.querySelector('#modal-header-delete-btn');
+    if (modalHeaderDeleteBtn) {
+      modalHeaderDeleteBtn.onclick = () => {
+        triggerDeleteConfirmation('single', order);
+      };
+    }
 
     const modalBody = document.getElementById('admin-order-modal-body');
     const isCod = order.payment?.method === 'COD' || (order.orderStatus && order.orderStatus.includes('COD'));
@@ -1460,8 +1479,8 @@ export async function initAdminOrdersPage() {
             <i class="bi bi-file-earmark-spreadsheet text-success me-1"></i> Push to Google Sheet
           </button>
         </div>
-        <button class="btn btn-outline-danger btn-sm" id="modal-delete-order-btn">
-          <i class="bi bi-trash3 me-1"></i> Delete Order
+        <button class="btn btn-danger btn-sm fw-bold d-inline-flex align-items-center gap-1 shadow-sm" id="modal-delete-order-btn">
+          <i class="bi bi-trash3-fill me-1"></i> Delete Order Permanently
         </button>
       </div>
     `;
