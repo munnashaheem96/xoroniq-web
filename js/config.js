@@ -3,7 +3,8 @@
 // ==========================================================================
 
 export const CONFIG = {
-  RAZORPAY_KEY_ID: import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_live_TWJriH4XFtLA4T',
+  RAZORPAY_KEY_ID: import.meta.env.VITE_RAZORPAY_KEY_ID || 'rzp_live_Tgwv2bPRil40BG',
+  API_BASE_URL: import.meta.env.VITE_API_URL || (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1') ? 'http://localhost:5001/api' : 'https://us-central1-marketing-website-45737.cloudfunctions.net/api'),
   FIREBASE: {
     apiKey: import.meta.env.VITE_FIREBASE_API_KEY || 'AIzaSyAIeLh3I9tPRtHCPCFszon4yaJAxrbLetE',
     authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN || 'marketing-website-45737.firebaseapp.com',

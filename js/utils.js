@@ -109,8 +109,9 @@ export function slugify(text) {
  * Generate a unique XORONIQ order ID (e.g. XOR-83921)
  */
 export function generateOrderId() {
-  const rand = Math.floor(100000 + Math.random() * 900000);
-  return `XOR-${rand}`;
+  const year = new Date().getFullYear();
+  const rand = Math.floor(10000 + Math.random() * 90000);
+  return `XRQ-${year}-${rand}`;
 }
 
 /**

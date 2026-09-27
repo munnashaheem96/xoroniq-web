@@ -577,6 +577,61 @@ export async function updateOrderTracking(docId, trackingData) {
 }
 
 /**
+ * Delete single order from Firestore (Admin)
+ * @param {string} docId 
+ */
+export async function deleteOrder(docId) {
+  try {
+    const docRef = doc(db, 'orders', docId);
+    await deleteDoc(docRef);
+    return true;
+  } catch (error) {
+    console.error('Error deleting order from Firestore:', error);
+    throw error;
+  }
+}
+
+/**
+ * Delete multiple orders in batch from Firestore (Admin)
+ * @param {Array<string>} docIds 
+ */
+export async function deleteMultipleOrders(docIds = []) {
+  if (!docIds || !docIds.length) return { success: 0, failed: 0 };
+  let successCount = 0;
+  let failedCount = 0;
+  for (const id of docIds) {
+    try {
+      const docRef = doc(db, 'orders', id);
+      await deleteDoc(docRef);
+      successCount++;
+    } catch (err) {
+      console.warn(`Failed to delete order ${id}:`, err);
+      failedCount++;
+    }
+  }
+  return { success: successCount, failed: failedCount };
+}
+
+/**
+ * Update internal admin note for an order
+ * @param {string} docId 
+ * @param {string} note 
+ */
+export async function updateOrderAdminNote(docId, note = '') {
+  try {
+    const docRef = doc(db, 'orders', docId);
+    await updateDoc(docRef, {
+      adminNote: note,
+      updatedAt: serverTimestamp()
+    });
+    return true;
+  } catch (error) {
+    console.error('Error updating admin note:', error);
+    throw error;
+  }
+}
+
+/**
  * Get metrics for Admin Dashboard
  */
 export async function getDashboardMetrics() {

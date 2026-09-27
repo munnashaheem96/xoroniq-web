@@ -32,47 +32,215 @@ export async function initAdminDashboard() {
   const mProducts = document.getElementById('metric-total-products');
   const mActive = document.getElementById('metric-active-products');
   const mOrders = document.getElementById('metric-total-orders');
+  const mAov = document.getElementById('metric-aov');
   const mPending = document.getElementById('metric-pending-orders');
   const mCompleted = document.getElementById('metric-completed-orders');
+  const mKeralaSplit = document.getElementById('metric-kerala-split');
   const mSales = document.getElementById('metric-total-sales');
+  const topProductsContainer = document.getElementById('top-products-container');
+  const fulfillmentContainer = document.getElementById('fulfillment-stats-container');
   const recentOrdersTable = document.getElementById('recent-orders-table-body');
 
   try {
-    const metrics = await getDashboardMetrics();
-    
+    const [metrics, orders, products] = await Promise.all([
+      getDashboardMetrics(),
+      getOrders(),
+      getProducts({ activeOnly: false })
+    ]);
+
+    // Sort orders newest first
+    orders.sort((a, b) => {
+      const timeA = a.createdAt?.seconds ? a.createdAt.seconds * 1000 : new Date(a.createdAt || 0).getTime();
+      const timeB = b.createdAt?.seconds ? b.createdAt.seconds * 1000 : new Date(b.createdAt || 0).getTime();
+      return timeB - timeA;
+    });
+
+    const nonCancelledOrders = orders.filter(o => o.orderStatus !== 'Cancelled');
+    const validOrderCount = nonCancelledOrders.length;
+    const totalRevenue = nonCancelledOrders.reduce((sum, o) => sum + (Number(o.total) || 0), 0);
+    const aov = validOrderCount > 0 ? Math.round(totalRevenue / validOrderCount) : 0;
+
+    // Regional Kerala vs ROI calculation
+    let keralaCount = 0;
+    orders.forEach(o => {
+      const state = (o.shippingAddress?.state || '').toLowerCase();
+      const pin = String(o.shippingAddress?.pincode || '');
+      if (state.includes('kerala') || pin.startsWith('67') || pin.startsWith('68') || pin.startsWith('69')) {
+        keralaCount++;
+      }
+    });
+    const keralaPct = orders.length > 0 ? Math.round((keralaCount / orders.length) * 100) : 0;
+    const roiPct = orders.length > 0 ? (100 - keralaPct) : 0;
+
     if (mProducts) mProducts.textContent = metrics.totalProducts;
     if (mActive) mActive.textContent = metrics.activeProducts;
     if (mOrders) mOrders.textContent = metrics.totalOrders;
+    if (mAov) mAov.textContent = formatCurrency(aov);
     if (mPending) mPending.textContent = metrics.pendingOrders;
     if (mCompleted) mCompleted.textContent = metrics.completedOrders;
-    if (mSales) mSales.textContent = formatCurrency(metrics.totalSales);
+    if (mKeralaSplit) mKeralaSplit.textContent = `${keralaPct}% KL / ${roiPct}% ROI`;
+    if (mSales) mSales.textContent = formatCurrency(totalRevenue || metrics.totalSales);
 
+    // 1. Top Performing Products Breakdown
+    if (topProductsContainer) {
+      const productMap = new Map();
+
+      orders.forEach(order => {
+        if (order.orderStatus === 'Cancelled') return;
+        (order.items || []).forEach(item => {
+          const key = item.id || item.sku || item.name;
+          if (!productMap.has(key)) {
+            productMap.set(key, {
+              name: item.name,
+              image: item.image,
+              sku: item.sku || 'N/A',
+              price: item.price,
+              unitsSold: 0,
+              revenue: 0
+            });
+          }
+          const p = productMap.get(key);
+          p.unitsSold += (Number(item.quantity) || 1);
+          p.revenue += (Number(item.price) || 0) * (Number(item.quantity) || 1);
+        });
+      });
+
+      const topProducts = Array.from(productMap.values()).sort((a, b) => b.revenue - a.revenue).slice(0, 5);
+
+      if (topProducts.length === 0) {
+        topProductsContainer.innerHTML = `
+          <div class="text-center py-4 text-muted-custom small">
+            No sales recorded yet. As orders arrive, bestsellers will rank here automatically.
+          </div>
+        `;
+      } else {
+        topProductsContainer.innerHTML = topProducts.map((p, idx) => `
+          <div class="d-flex align-items-center justify-content-between p-2 rounded mb-2 border border-secondary border-opacity-25 bg-white">
+            <div class="d-flex align-items-center gap-3">
+              <span class="badge ${idx === 0 ? 'bg-warning text-dark' : 'bg-light text-muted-custom'} rounded-circle px-2 py-1 small fw-bold">#${idx + 1}</span>
+              ${p.image ? `<img src="${p.image}" alt="${p.name}" class="rounded" style="width: 40px; height: 40px; object-fit: contain;">` : ''}
+              <div>
+                <div class="text-black fw-bold small">${p.name}</div>
+                <div class="text-muted-custom" style="font-size: 0.72rem;">SKU: ${p.sku} • Units Sold: <strong class="text-dark">${p.unitsSold}</strong></div>
+              </div>
+            </div>
+            <div class="text-end">
+              <div class="font-mono text-accent fw-bold small">${formatCurrency(p.revenue)}</div>
+              <div class="text-muted-custom" style="font-size: 0.7rem;">Revenue</div>
+            </div>
+          </div>
+        `).join('');
+      }
+    }
+
+    // 2. Fulfillment Efficiency Telemetry
+    if (fulfillmentContainer) {
+      const deliveredCount = orders.filter(o => o.orderStatus === 'Delivered').length;
+      const shippedCount = orders.filter(o => o.orderStatus === 'Shipped').length;
+      const pendingCount = orders.filter(o => o.orderStatus === 'Payment Confirmed' || o.orderStatus === 'Processing' || o.orderStatus === 'Order Placed (COD)').length;
+      const cancelledCount = orders.filter(o => o.orderStatus === 'Cancelled').length;
+      const totalCount = orders.length || 1;
+
+      const delPct = Math.round((deliveredCount / totalCount) * 100);
+      const shipPct = Math.round((shippedCount / totalCount) * 100);
+      const pendPct = Math.round((pendingCount / totalCount) * 100);
+      const cancPct = Math.round((cancelledCount / totalCount) * 100);
+
+      fulfillmentContainer.innerHTML = `
+        <div class="mb-3">
+          <div class="d-flex justify-content-between small mb-1">
+            <span class="fw-semibold text-dark"><i class="bi bi-check-circle-fill text-success me-1"></i> Delivered Orders</span>
+            <span class="font-mono fw-bold">${deliveredCount} (${delPct}%)</span>
+          </div>
+          <div class="progress" style="height: 8px;">
+            <div class="progress-bar bg-success" role="progressbar" style="width: ${delPct}%;"></div>
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <div class="d-flex justify-content-between small mb-1">
+            <span class="fw-semibold text-dark"><i class="bi bi-truck text-accent me-1"></i> Shipped in Transit</span>
+            <span class="font-mono fw-bold">${shippedCount} (${shipPct}%)</span>
+          </div>
+          <div class="progress" style="height: 8px;">
+            <div class="progress-bar bg-info" role="progressbar" style="width: ${shipPct}%;"></div>
+          </div>
+        </div>
+
+        <div class="mb-3">
+          <div class="d-flex justify-content-between small mb-1">
+            <span class="fw-semibold text-dark"><i class="bi bi-clock-history text-warning me-1"></i> Awaiting Dispatch</span>
+            <span class="font-mono fw-bold">${pendingCount} (${pendPct}%)</span>
+          </div>
+          <div class="progress" style="height: 8px;">
+            <div class="progress-bar bg-warning" role="progressbar" style="width: ${pendPct}%;"></div>
+          </div>
+        </div>
+
+        <div class="mb-2">
+          <div class="d-flex justify-content-between small mb-1">
+            <span class="fw-semibold text-dark"><i class="bi bi-x-circle-fill text-danger me-1"></i> Cancelled / Fake Orders Purged</span>
+            <span class="font-mono fw-bold">${cancelledCount} (${cancPct}%)</span>
+          </div>
+          <div class="progress" style="height: 8px;">
+            <div class="progress-bar bg-danger" role="progressbar" style="width: ${cancPct}%;"></div>
+          </div>
+        </div>
+      `;
+    }
+
+    // 3. Recent Orders Table
     if (recentOrdersTable) {
-      const orders = await getOrders();
-      const recent = orders.slice(0, 5);
+      const recent = orders.slice(0, 6);
 
       if (recent.length === 0) {
         recentOrdersTable.innerHTML = `
           <tr>
-            <td colspan="5" class="text-center py-4 text-muted-custom">
+            <td colspan="7" class="text-center py-4 text-muted-custom">
               No orders placed yet. Orders will appear here in real-time.
             </td>
           </tr>
         `;
       } else {
-        recentOrdersTable.innerHTML = recent.map(o => `
-          <tr>
-            <td class="font-mono text-black fw-bold">${o.orderId}</td>
-            <td class="text-black">${o.customer?.name || 'Customer'}</td>
-            <td class="small text-dark">${formatDate(o.createdAt)}</td>
-            <td class="font-mono text-accent fw-bold">${formatCurrency(o.total)}</td>
-            <td>
-              <span class="badge-status ${o.orderStatus === 'Delivered' ? 'status-delivered' : 'status-pending'}">
-                ${o.orderStatus}
-              </span>
-            </td>
-          </tr>
-        `).join('');
+        recentOrdersTable.innerHTML = recent.map(o => {
+          let badgeClass = 'status-pending';
+          if (o.orderStatus === 'Delivered') badgeClass = 'status-delivered';
+          if (o.orderStatus === 'Shipped') badgeClass = 'status-shipped';
+          if (o.orderStatus === 'Cancelled') badgeClass = 'status-cancelled';
+
+          const cleanPhone = String(o.customer?.phone || '').replace(/\D/g, '');
+          const waPhone = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
+
+          return `
+            <tr>
+              <td class="font-mono text-black fw-bold">#${o.orderId}</td>
+              <td>
+                <div class="text-black fw-semibold">${o.customer?.name || 'Customer'}</div>
+                <div class="text-muted-custom small">${o.customer?.phone || ''}</div>
+              </td>
+              <td class="small text-dark">${o.shippingAddress?.city || ''}, ${o.shippingAddress?.state || ''}</td>
+              <td class="small text-dark">${formatDate(o.createdAt)}</td>
+              <td class="font-mono text-accent fw-bold">${formatCurrency(o.total)}</td>
+              <td>
+                <span class="badge-status ${badgeClass}">
+                  ${o.orderStatus}
+                </span>
+              </td>
+              <td>
+                <div class="d-flex align-items-center gap-1">
+                  ${cleanPhone ? `
+                    <a href="https://wa.me/${waPhone}?text=${encodeURIComponent(`Hello ${o.customer?.name || ''}, this is XORONIQ regarding order #${o.orderId}`)}" target="_blank" class="btn btn-whatsapp-action btn-sm py-1 px-2" title="WhatsApp Customer">
+                      <i class="bi bi-whatsapp"></i>
+                    </a>
+                  ` : ''}
+                  <a href="orders.html" class="btn btn-x-outline btn-sm py-1 px-2" title="Manage Order in Dispatch Hub">
+                    <i class="bi bi-arrow-right"></i>
+                  </a>
+                </div>
+              </td>
+            </tr>
+          `;
+        }).join('');
       }
     }
   } catch (err) {

@@ -11,6 +11,9 @@ build/
 .env
 .env.*
 !.env.example
+functions/.env
+functions/.env.*
+!functions/.env.example
 
 # Logs
 npm-debug.log*

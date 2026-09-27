@@ -86,7 +86,7 @@
         <div class="col-lg-8">
           <div class="shipping-bar-wrapper mb-4" id="cart-page-shipping-meter">
             <div class="d-flex justify-content-between align-items-center small text-silver" id="cart-page-shipping-msg">
-              All Kerala delivery: <strong>₹60</strong> (Rest of India: <strong>₹80</strong>) • FREE on orders above ₹2,500 • Cash on Delivery (+₹20) Available
+              All Kerala delivery: <strong>₹60</strong> (Rest of India: <strong>₹80</strong>) • FREE on orders above ₹2,500 • Instant Online Prepaid Dispatch
             </div>
             <div class="shipping-progress">
               <div class="shipping-progress-fill" id="cart-page-shipping-progress" style="width: 0%;"></div>
@@ -113,27 +113,36 @@
               <div id="cart-pincode-feedback" class="small mt-2" style="display: none;"></div>
             </div>
 
-            <!-- Payment Preference Option -->
+            <!-- Payment Method & COD Contact Notice -->
             <div class="mb-3 p-3 bg-alt-custom rounded border border-secondary border-opacity-25">
-              <label class="form-label text-black small fw-bold font-heading mb-2">PAYMENT OPTION</label>
-              <div class="d-flex flex-column gap-2">
-                <label class="d-flex align-items-center justify-content-between p-2 rounded border border-accent bg-white cursor-pointer small" id="cart-pay-online-card" style="cursor: pointer;">
-                  <div class="d-flex align-items-center gap-2">
-                    <input class="form-check-input m-0 form-check-input-custom" type="radio" name="cartPaymentMethod" id="cartPayOnline" value="RAZORPAY" checked>
-                    <span class="fw-bold text-black">Online Prepaid (Razorpay)</span>
-                  </div>
-                  <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25" style="font-size: 0.68rem;">Fastest Dispatch</span>
-                </label>
-                <label class="d-flex align-items-center justify-content-between p-2 rounded border border-secondary border-opacity-25 bg-white cursor-pointer small" id="cart-pay-cod-card" style="cursor: pointer;">
-                  <div class="d-flex align-items-center gap-2">
-                    <input class="form-check-input m-0 form-check-input-custom" type="radio" name="cartPaymentMethod" id="cartPayCOD" value="COD">
-                    <div class="d-flex flex-column">
-                      <span class="fw-bold text-black">Cash on Delivery</span>
-                      <small class="text-muted-custom" style="font-size: 0.7rem;">Pay cash upon delivery</small>
+              <div class="d-flex align-items-center justify-content-between mb-2">
+                <label class="form-label text-black small fw-bold font-heading mb-0">PAYMENT METHOD</label>
+                <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25" style="font-size: 0.65rem;">UPI / Cards / NetBanking</span>
+              </div>
+              <div class="p-2 rounded bg-white border border-accent mb-2 d-flex align-items-center justify-content-between">
+                <div class="d-flex align-items-center gap-2">
+                  <i class="bi bi-shield-check text-accent fs-5"></i>
+                  <span class="fw-bold text-black small">Online Prepaid (Razorpay)</span>
+                </div>
+                <span class="badge bg-success text-white small" style="font-size: 0.65rem;">Fastest Dispatch</span>
+              </div>
+              <div class="p-2 rounded bg-warning bg-opacity-10 border border-warning border-opacity-50 small">
+                <div class="d-flex align-items-start gap-2">
+                  <i class="bi bi-info-circle-fill text-dark mt-1"></i>
+                  <div>
+                    <strong class="text-dark d-block">Need Cash on Delivery (COD)?</strong>
+                    <span class="text-muted-custom" style="font-size: 0.72rem; line-height: 1.4;">Due to fake orders, COD is confirmed via direct chat:</span>
+                    <div class="d-flex gap-2 mt-1">
+                      <a href="https://wa.me/919188510017?text=Hi%20XORONIQ%2C%20I%20would%20like%20to%20order%20via%20Cash%20on%20Delivery%20(COD)" target="_blank" class="text-success fw-bold text-decoration-underline" style="font-size: 0.72rem;">
+                        <i class="bi bi-whatsapp"></i> +91 9188510017
+                      </a>
+                      <span class="text-muted-custom">|</span>
+                      <a href="https://instagram.com/xoroniq" target="_blank" class="text-dark fw-bold text-decoration-underline" style="font-size: 0.72rem;">
+                        <i class="bi bi-instagram text-danger"></i> @xoroniq
+                      </a>
                     </div>
                   </div>
-                  <span class="badge bg-accent text-white" style="font-size: 0.68rem;">+₹20 Fee</span>
-                </label>
+                </div>
               </div>
             </div>
 
@@ -289,41 +298,13 @@
       });
 
       let currentPin = document.getElementById('cart-pincode-input')?.value.trim() || '';
-      const codRadio = document.getElementById('cartPayCOD');
-      const isCod = Boolean(codRadio && codRadio.checked);
-      const paymentMethod = isCod ? 'COD' : 'RAZORPAY';
-      const pinTotals = getCartTotals(currentPin, paymentMethod);
+      const pinTotals = getCartTotals(currentPin, 'RAZORPAY');
 
       const codRow = document.getElementById('cart-page-cod-row');
-      const codFeeEl = document.getElementById('cart-page-cod-fee');
-      const cardOnline = document.getElementById('cart-pay-online-card');
-      const cardCOD = document.getElementById('cart-pay-cod-card');
-
-      if (codRow) {
-        if (isCod && pinTotals.subtotal > 0) {
-          codRow.style.display = 'flex';
-          if (codFeeEl) codFeeEl.textContent = `+${formatCurrency(pinTotals.codFee)}`;
-        } else {
-          codRow.style.display = 'none';
-        }
-      }
-
-      if (cardOnline && cardCOD) {
-        if (isCod) {
-          cardCOD.classList.add('border-accent');
-          cardCOD.classList.remove('border-secondary');
-          cardOnline.classList.remove('border-accent');
-          cardOnline.classList.add('border-secondary');
-        } else {
-          cardOnline.classList.add('border-accent');
-          cardOnline.classList.remove('border-secondary');
-          cardCOD.classList.remove('border-accent');
-          cardCOD.classList.add('border-secondary');
-        }
-      }
+      if (codRow) codRow.style.display = 'none';
 
       if (checkoutBtn) {
-        checkoutBtn.href = isCod ? 'checkout.html?payment=cod' : 'checkout.html?payment=razorpay';
+        checkoutBtn.href = 'checkout.html?payment=razorpay';
       }
 
       if (subtotalEl) subtotalEl.textContent = formatCurrency(pinTotals.subtotal);
@@ -359,46 +340,20 @@
       const pinBtn = document.getElementById('cart-pincode-btn');
       const pinFeedback = document.getElementById('cart-pincode-feedback');
 
-      const payOnlineRadio = document.getElementById('cartPayOnline');
-      const payCODRadio = document.getElementById('cartPayCOD');
-      const cardOnline = document.getElementById('cart-pay-online-card');
-      const cardCOD = document.getElementById('cart-pay-cod-card');
-
-      if (payOnlineRadio) payOnlineRadio.addEventListener('change', renderCartPage);
-      if (payCODRadio) payCODRadio.addEventListener('change', renderCartPage);
-
-      if (cardOnline) {
-        cardOnline.addEventListener('click', () => {
-          if (payOnlineRadio) {
-            payOnlineRadio.checked = true;
-            renderCartPage();
-          }
-        });
-      }
-
-      if (cardCOD) {
-        cardCOD.addEventListener('click', () => {
-          if (payCODRadio) {
-            payCODRadio.checked = true;
-            renderCartPage();
-          }
-        });
-      }
-
       function handlePinCheck() {
         const pin = pinInput?.value.trim() || '';
         renderCartPage();
         if (!pinFeedback) return;
         
-        const totals = getCartTotals(pin);
+        const totals = getCartTotals(pin, 'RAZORPAY');
         if (totals.shipping === 0) {
           pinFeedback.innerHTML = '<span class="text-success fw-bold"><i class="bi bi-check-circle-fill me-1"></i> Free Shipping Unlocked (Order > ₹2,500)!</span>';
           pinFeedback.style.display = 'block';
         } else if (totals.isKerala || totals.isLocalDelivery) {
-          pinFeedback.innerHTML = '<span class="text-accent fw-bold"><i class="bi bi-geo-alt-fill me-1"></i> All Kerala Delivery Rate: ₹60 (Cash on Delivery +₹20 available)</span>';
+          pinFeedback.innerHTML = '<span class="text-accent fw-bold"><i class="bi bi-geo-alt-fill me-1"></i> All Kerala Delivery Rate: ₹60</span>';
           pinFeedback.style.display = 'block';
         } else if (pin.length === 6) {
-          pinFeedback.innerHTML = `<span class="text-muted-custom"><i class="bi bi-truck me-1"></i> Rest of India Delivery: ₹${totals.shipping} (Cash on Delivery +₹20 available)</span>`;
+          pinFeedback.innerHTML = `<span class="text-muted-custom"><i class="bi bi-truck me-1"></i> Rest of India Delivery: ₹${totals.shipping}</span>`;
           pinFeedback.style.display = 'block';
         } else {
           pinFeedback.style.display = 'none';

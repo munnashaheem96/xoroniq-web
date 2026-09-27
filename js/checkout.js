@@ -3,6 +3,7 @@
 // Customer Validation, Order Calculation, Razorpay Processing & Firestore Order Storage
 // ==========================================================================
 
+import { CONFIG } from './config.js';
 import { getCart, getCartTotals, clearCart } from './cart.js';
 import { createOrder, onUserAuthChange, getUserProfile } from './firebase.js';
 import { openRazorpayCheckout } from './razorpay.js';
@@ -51,22 +52,23 @@ export function initCheckoutPage() {
   const stateInput = document.getElementById('cust-state');
   const cityInput = document.getElementById('cust-city');
   const payRazorpayRadio = document.getElementById('payRazorpay');
-  const payCODRadio = document.getElementById('payCOD');
   const cardRazorpay = document.getElementById('card-pay-razorpay');
-  const cardCOD = document.getElementById('card-pay-cod');
-  const codNoticeEl = document.getElementById('checkout-cod-notice');
+  const codCardEl = document.getElementById('cod-contact-card');
 
-  // Support pre-selected payment method via query string (e.g. ?payment=cod)
+  // If user navigated with ?payment=cod, highlight COD concierge card and advise them
   const urlParams = new URLSearchParams(window.location.search);
   const initialPaymentParam = urlParams.get('payment');
-  if (initialPaymentParam === 'cod' && payCODRadio) {
-    payCODRadio.checked = true;
-  } else if (initialPaymentParam === 'razorpay' && payRazorpayRadio) {
-    payRazorpayRadio.checked = true;
+  if (initialPaymentParam === 'cod') {
+    setTimeout(() => {
+      if (codCardEl) {
+        codCardEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        codCardEl.classList.add('border-accent');
+      }
+      showToast('Automated COD is disabled to prevent fake orders. Please DM on Instagram or WhatsApp to order via COD.', 'info');
+    }, 500);
   }
 
   function getSelectedPaymentMethod() {
-    if (payCODRadio && payCODRadio.checked) return 'COD';
     return 'RAZORPAY';
   }
 
@@ -83,8 +85,7 @@ export function initCheckoutPage() {
       }
     }
 
-    const selectedMethod = getSelectedPaymentMethod();
-    totals = getCartTotals(currentPincode, selectedMethod, stateInput ? stateInput.value.trim() : '', currentCity);
+    totals = getCartTotals(currentPincode, 'RAZORPAY', stateInput ? stateInput.value.trim() : '', currentCity);
 
     if (subtotalEl) subtotalEl.textContent = formatCurrency(totals.subtotal);
     
@@ -98,44 +99,15 @@ export function initCheckoutPage() {
       }
     }
 
-    // Toggle COD fee row
+    // Ensure COD fee row is hidden
     if (codRow) {
-      if (selectedMethod === 'COD') {
-        codRow.style.display = 'flex';
-        if (codFeeEl) codFeeEl.textContent = `+${formatCurrency(totals.codFee)}`;
-      } else {
-        codRow.style.display = 'none';
-      }
-    }
-
-    // Toggle COD informational notice
-    if (codNoticeEl) {
-      codNoticeEl.style.display = (selectedMethod === 'COD') ? 'block' : 'none';
-    }
-
-    // Toggle active card styles
-    if (cardRazorpay && cardCOD) {
-      if (selectedMethod === 'COD') {
-        cardCOD.classList.add('border-accent');
-        cardCOD.classList.remove('border-secondary');
-        cardRazorpay.classList.remove('border-accent');
-        cardRazorpay.classList.add('border-secondary');
-      } else {
-        cardRazorpay.classList.add('border-accent');
-        cardRazorpay.classList.remove('border-secondary');
-        cardCOD.classList.remove('border-accent');
-        cardCOD.classList.add('border-secondary');
-      }
+      codRow.style.display = 'none';
     }
 
     if (totalEl) totalEl.textContent = formatCurrency(totals.total);
 
     if (placeOrderBtn) {
-      if (selectedMethod === 'COD') {
-        placeOrderBtn.innerHTML = `<i class="bi bi-truck me-2"></i> PLACE ORDER (CASH ON DELIVERY) — ${formatCurrency(totals.total)}`;
-      } else {
-        placeOrderBtn.innerHTML = `<i class="bi bi-lock-fill me-2"></i> PAY & CONFIRM ORDER — ${formatCurrency(totals.total)}`;
-      }
+      placeOrderBtn.innerHTML = `<i class="bi bi-lock-fill me-2"></i> PAY & CONFIRM ORDER — ${formatCurrency(totals.total)}`;
     }
 
     if (pincodeNoticeEl) {
@@ -173,14 +145,6 @@ export function initCheckoutPage() {
     cardRazorpay.addEventListener('click', () => {
       if (payRazorpayRadio && !payRazorpayRadio.checked) {
         payRazorpayRadio.checked = true;
-        updateOrderTotalsDisplay();
-      }
-    });
-  }
-  if (cardCOD) {
-    cardCOD.addEventListener('click', () => {
-      if (payCODRadio && !payCODRadio.checked) {
-        payCODRadio.checked = true;
         updateOrderTotalsDisplay();
       }
     });
@@ -253,80 +217,88 @@ export function initCheckoutPage() {
         return;
       }
 
-      // Recalculate totals with entered pincode, state, and payment method
-      totals = getCartTotals(pincode, selectedPaymentMethod, state, city);
+      // Recalculate totals with entered pincode and state
+      totals = getCartTotals(pincode, 'RAZORPAY', state, city);
 
       const originalBtnHtml = placeOrderBtn.innerHTML;
       placeOrderBtn.disabled = true;
 
-      const orderId = generateOrderId();
-
       // ======================================================================
-      // CASH ON DELIVERY (COD) FLOW
-      // ======================================================================
-      if (selectedPaymentMethod === 'COD') {
-        placeOrderBtn.innerHTML = `
-          <span class="spinner-border spinner-border-sm me-2" role="status"></span>
-          CONFIRMING CASH ON DELIVERY ORDER...
-        `;
-
-        const attribution = getUtmAttribution();
-
-        const orderData = {
-          orderId: orderId,
-          customer: { name, email, phone: cleanPhone },
-          shippingAddress: { address, city, state, pincode, country: 'India' },
-          items: cart,
-          subtotal: totals.subtotal,
-          shipping: totals.shipping,
-          codFee: totals.codFee,
-          total: totals.total,
-          orderStatus: 'Order Placed (COD)',
-          payment: {
-            method: 'COD',
-            status: 'PENDING_COD',
-            codFee: totals.codFee,
-            details: 'Cash on Delivery (+₹20 extra handling fee)'
-          },
-          attribution: attribution || null
-        };
-
-        try {
-          await createOrder(orderData);
-          sendOrderToGoogleSheets(orderData).catch(err => {
-            console.warn('Google Sheets sync note:', err);
-          });
-          setStorage('xoroniq_last_order', orderData);
-          clearCart();
-          window.location.href = `success.html?orderId=${orderId}&payment=cod`;
-        } catch (err) {
-          console.error('Failed to store COD order in Firestore:', err);
-          sendOrderToGoogleSheets(orderData).catch(e => console.warn('Google Sheets fallback note:', e));
-          setStorage('xoroniq_last_order', orderData);
-          clearCart();
-          window.location.href = `success.html?orderId=${orderId}&payment=cod`;
-        }
-        return;
-      }
-
-      // ======================================================================
-      // PREPAID ONLINE PAYMENT FLOW (RAZORPAY)
+      // PREPAID ONLINE PAYMENT FLOW (RAZORPAY & SERVER ORDER SYSTEM)
       // ======================================================================
       placeOrderBtn.innerHTML = `
         <span class="spinner-border spinner-border-sm me-2" role="status"></span>
         INITIALIZING SECURE CHECKOUT...
       `;
 
+      let orderId = null;
+      let razorpayOrderId = null;
+
+      try {
+        // Request server-generated atomic XRQ-YYYY-XXXXX Order ID & Razorpay Order
+        const createRes = await fetch(`${CONFIG.API_BASE_URL}/create-order`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            customer: { name, email, phone: cleanPhone },
+            shippingAddress: { address, city, state, pincode, country: 'India' },
+            items: cart,
+            subtotal: totals.subtotal,
+            shipping: totals.shipping,
+            discount: totals.discount || 0,
+            total: totals.total,
+            attribution: getUtmAttribution() || null,
+          }),
+        });
+
+        if (createRes.ok) {
+          const createData = await createRes.json();
+          orderId = createData.orderId;
+          razorpayOrderId = createData.razorpayOrderId;
+        } else {
+          console.warn('Backend order creation returned status', createRes.status);
+        }
+      } catch (apiErr) {
+        console.warn('Backend order creation endpoint unreachable, using client fallback ID:', apiErr);
+      }
+
+      // Safe fallback if backend is offline in local development
+      if (!orderId) {
+        orderId = generateOrderId();
+      }
+
       try {
         await openRazorpayCheckout({
           amount: totals.total,
           orderId: orderId,
+          razorpayOrderId: razorpayOrderId,
           customer: { name, email, phone: cleanPhone },
           onSuccess: async (paymentResponse) => {
             placeOrderBtn.innerHTML = `
               <span class="spinner-border spinner-border-sm me-2" role="status"></span>
-              SECURING ORDER IN DATABASE...
+              VERIFYING PAYMENT & CONFIRMING...
             `;
+
+            // Server-side payment verification & automated email triggers
+            try {
+              const verifyRes = await fetch(`${CONFIG.API_BASE_URL}/verify-payment`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  orderId: orderId,
+                  razorpay_order_id: paymentResponse.razorpay_order_id || razorpayOrderId,
+                  razorpay_payment_id: paymentResponse.razorpay_payment_id,
+                  razorpay_signature: paymentResponse.razorpay_signature,
+                }),
+              });
+
+              if (verifyRes.ok) {
+                const verifyData = await verifyRes.json();
+                console.log('Server verified order and triggered notifications:', verifyData);
+              }
+            } catch (vErr) {
+              console.warn('Server verification API note (Razorpay Webhook will also verify and notify):', vErr);
+            }
 
             const attribution = getUtmAttribution();
 
@@ -337,30 +309,29 @@ export function initCheckoutPage() {
               items: cart,
               subtotal: totals.subtotal,
               shipping: totals.shipping,
+              discount: totals.discount || 0,
               codFee: 0,
               total: totals.total,
               orderStatus: 'Payment Confirmed',
               payment: {
                 method: 'RAZORPAY',
                 razorpayPaymentId: paymentResponse.razorpay_payment_id || `pay_${Date.now()}`,
-                razorpayOrderId: paymentResponse.razorpay_order_id || '',
-                status: 'PAID'
+                razorpayOrderId: paymentResponse.razorpay_order_id || razorpayOrderId || '',
+                status: 'PAID',
               },
-              attribution: attribution || null
+              attribution: attribution || null,
             };
 
             try {
-              await createOrder(orderData);
-              // Dispatch order to Google Sheets
-              sendOrderToGoogleSheets(orderData).catch(err => {
+              // Also sync with Google Sheets
+              sendOrderToGoogleSheets(orderData).catch((err) => {
                 console.warn('Google Sheets sync note:', err);
               });
               setStorage('xoroniq_last_order', orderData);
               clearCart();
               window.location.href = `success.html?orderId=${orderId}&payment=razorpay`;
             } catch (err) {
-              console.error('Failed to store order in Firestore:', err);
-              sendOrderToGoogleSheets(orderData).catch(e => console.warn('Google Sheets fallback note:', e));
+              console.error('Checkout completion note:', err);
               setStorage('xoroniq_last_order', orderData);
               clearCart();
               window.location.href = `success.html?orderId=${orderId}&payment=razorpay`;
@@ -371,7 +342,7 @@ export function initCheckoutPage() {
             placeOrderBtn.disabled = false;
             placeOrderBtn.innerHTML = originalBtnHtml;
             showToast('Payment was not completed. Please try again.', 'error');
-          }
+          },
         });
       } catch (err) {
         console.error('Error in checkout flow:', err);

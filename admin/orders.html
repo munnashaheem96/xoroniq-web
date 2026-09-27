@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Orders &amp; Dispatch | XORONIQ Admin</title>
+  <title>Orders &amp; Dispatch Hub | XORONIQ Admin</title>
   <meta name="robots" content="noindex, nofollow">
-  <meta name="description" content="Manage orders, tracking numbers, customer information, and dispatch status in XORONIQ Car Care.">
+  <meta name="description" content="Manage orders, tracking numbers, customer information, packing slips, and dispatch status in XORONIQ Car Care.">
   <link rel="icon" type="image/png" href="../images/logo/logo.PNG">
 
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -53,55 +53,202 @@
       <header class="admin-topbar">
         <div class="d-flex align-items-center gap-3">
           <button class="btn btn-icon d-lg-none" id="toggle-sidebar-btn"><i class="bi bi-list fs-4"></i></button>
-          <h4 class="font-heading text-black fw-bold mb-0">CUSTOMER ORDERS & DISPATCH</h4>
+          <div>
+            <h4 class="font-heading text-black fw-bold mb-0">CUSTOMER ORDERS & DISPATCH</h4>
+            <div class="text-muted-custom small">Full order fulfillment, Delhivery tracking, WhatsApp updates & deletion controls</div>
+          </div>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+          <button class="btn btn-x-outline btn-sm d-flex align-items-center gap-1" id="refresh-orders-btn" title="Refresh Orders List">
+            <i class="bi bi-arrow-clockwise"></i> Refresh
+          </button>
+          <a href="../shop.html" target="_blank" class="btn btn-x-primary btn-sm d-none d-sm-inline-flex align-items-center gap-1">
+            <i class="bi bi-eye"></i> Store
+          </a>
         </div>
       </header>
 
       <div class="admin-content-wrap">
         
-        <!-- Filter & Search Controls -->
-        <div class="glass-panel p-3 mb-4 d-flex flex-wrap align-items-center justify-content-between gap-3">
-          <div class="d-flex align-items-center gap-2 flex-grow-1" style="max-width: 400px;">
-            <div class="input-group">
-              <span class="input-group-text bg-white border text-dark"><i class="bi bi-search"></i></span>
-              <input type="text" id="admin-orders-search" class="form-control form-control-custom" placeholder="Search by Order ID, name, or phone...">
+        <!-- Quick Status Chips / KPI Strip -->
+        <div class="row g-3 mb-4">
+          <div class="col-6 col-md-4 col-xl-2">
+            <div class="order-stat-chip active" data-status="ALL" id="chip-all-orders">
+              <div class="chip-icon bg-light text-dark"><i class="bi bi-collection-fill"></i></div>
+              <div>
+                <div class="fw-bold font-mono text-black fs-6" id="stat-count-all">0</div>
+                <div class="text-muted-custom small" style="font-size: 0.72rem;">All Orders</div>
+              </div>
+            </div>
+          </div>
+          <div class="col-6 col-md-4 col-xl-2">
+            <div class="order-stat-chip" data-status="AWAITING_DISPATCH" id="chip-awaiting-orders">
+              <div class="chip-icon bg-warning bg-opacity-25 text-warning"><i class="bi bi-clock-history"></i></div>
+              <div>
+                <div class="fw-bold font-mono text-warning fs-6" id="stat-count-awaiting">0</div>
+                <div class="text-muted-custom small" style="font-size: 0.72rem;">To Dispatch</div>
+              </div>
+            </div>
+          </div>
+          <div class="col-6 col-md-4 col-xl-2">
+            <div class="order-stat-chip" data-status="Shipped" id="chip-shipped-orders">
+              <div class="chip-icon bg-info bg-opacity-25 text-info"><i class="bi bi-truck"></i></div>
+              <div>
+                <div class="fw-bold font-mono text-accent fs-6" id="stat-count-shipped">0</div>
+                <div class="text-muted-custom small" style="font-size: 0.72rem;">In Transit</div>
+              </div>
+            </div>
+          </div>
+          <div class="col-6 col-md-4 col-xl-2">
+            <div class="order-stat-chip" data-status="Delivered" id="chip-delivered-orders">
+              <div class="chip-icon bg-success bg-opacity-25 text-success"><i class="bi bi-check2-circle"></i></div>
+              <div>
+                <div class="fw-bold font-mono text-success fs-6" id="stat-count-delivered">0</div>
+                <div class="text-muted-custom small" style="font-size: 0.72rem;">Delivered</div>
+              </div>
+            </div>
+          </div>
+          <div class="col-6 col-md-4 col-xl-2">
+            <div class="order-stat-chip" data-status="Cancelled" id="chip-cancelled-orders">
+              <div class="chip-icon bg-danger bg-opacity-25 text-danger"><i class="bi bi-x-circle"></i></div>
+              <div>
+                <div class="fw-bold font-mono text-danger fs-6" id="stat-count-cancelled">0</div>
+                <div class="text-muted-custom small" style="font-size: 0.72rem;">Cancelled / Fake</div>
+              </div>
+            </div>
+          </div>
+          <div class="col-6 col-md-4 col-xl-2">
+            <div class="order-stat-chip bg-white border border-secondary border-opacity-25" style="cursor: default;">
+              <div class="chip-icon bg-success bg-opacity-10 text-success"><i class="bi bi-currency-rupee"></i></div>
+              <div>
+                <div class="fw-bold font-mono text-dark fs-6 text-truncate" id="stat-total-revenue">₹0</div>
+                <div class="text-muted-custom small" style="font-size: 0.72rem;">Total Revenue</div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Filter & Search Controls Bar -->
+        <div class="glass-panel p-3 mb-3">
+          <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+            <div class="d-flex align-items-center gap-2 flex-grow-1" style="min-width: 260px; max-width: 450px;">
+              <div class="input-group">
+                <span class="input-group-text bg-white border text-dark"><i class="bi bi-search"></i></span>
+                <input type="text" id="admin-orders-search" class="form-control form-control-custom" placeholder="Search Order ID, name, phone, email, AWB, PIN...">
+              </div>
+            </div>
+
+            <div class="d-flex align-items-center flex-wrap gap-2">
+              <!-- Status Filter -->
+              <select id="admin-orders-filter" class="form-select form-control-custom py-2 px-3 small" style="width: auto;">
+                <option value="ALL">All Statuses</option>
+                <option value="Payment Confirmed">Payment Confirmed</option>
+                <option value="Processing">Processing</option>
+                <option value="Shipped">Shipped</option>
+                <option value="Delivered">Delivered</option>
+                <option value="Cancelled">Cancelled</option>
+                <option value="Order Placed (COD)">Order Placed (COD)</option>
+              </select>
+
+              <!-- Payment Method Filter -->
+              <select id="admin-orders-payment-filter" class="form-select form-control-custom py-2 px-3 small" style="width: auto;">
+                <option value="ALL">All Payments</option>
+                <option value="RAZORPAY">Prepaid (Razorpay)</option>
+                <option value="COD">Cash on Delivery (COD)</option>
+              </select>
+
+              <!-- Date Filter -->
+              <select id="admin-orders-date-filter" class="form-select form-control-custom py-2 px-3 small" style="width: auto;">
+                <option value="ALL">All Time</option>
+                <option value="TODAY">Today</option>
+                <option value="YESTERDAY">Yesterday</option>
+                <option value="LAST_7_DAYS">Last 7 Days</option>
+                <option value="THIS_MONTH">This Month</option>
+              </select>
+
+              <!-- Region Filter -->
+              <select id="admin-orders-region-filter" class="form-select form-control-custom py-2 px-3 small" style="width: auto;">
+                <option value="ALL">All Regions</option>
+                <option value="KERALA">Kerala Orders</option>
+                <option value="ROI">Rest of India</option>
+              </select>
+
+              <button class="btn btn-x-outline btn-sm" id="reset-filters-btn" title="Reset all filters">
+                <i class="bi bi-arrow-counterclockwise"></i> Reset
+              </button>
             </div>
           </div>
 
+          <!-- Secondary Toolbar: Customers Directory, CSV, Google Sheets -->
+          <div class="d-flex flex-wrap align-items-center justify-content-between pt-3 mt-3 border-top border-secondary border-opacity-25 gap-2">
+            <div class="d-flex align-items-center gap-2">
+              <span class="badge bg-white border text-dark fw-bold" id="admin-orders-count">0 Orders</span>
+              <span class="badge bg-surface-custom text-muted-custom border" id="admin-orders-active-filter-badge">Showing: All Orders</span>
+            </div>
+            <div class="d-flex align-items-center flex-wrap gap-2">
+              <button class="btn btn-x-outline btn-sm d-flex align-items-center gap-1" id="open-customer-directory-btn" data-bs-toggle="modal" data-bs-target="#customerDirectoryModal" title="View Customer Contacts & Lifetime Value">
+                <i class="bi bi-people-fill text-accent"></i> Customer Directory
+              </button>
+              <button class="btn btn-x-outline btn-sm d-flex align-items-center gap-1" id="export-orders-csv-btn" title="Download Excel/CSV Spreadsheet">
+                <i class="bi bi-file-earmark-spreadsheet text-success"></i> Export CSV
+              </button>
+              <button class="btn btn-x-primary btn-sm d-flex align-items-center gap-1" id="open-sheets-modal-btn" data-bs-toggle="modal" data-bs-target="#sheetsModal" title="Configure Google Sheets Webhook Sync">
+                <i class="bi bi-cloud-arrow-up"></i> Google Sheets Sync
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bulk Action Toolbar (Displayed dynamically when orders are selected) -->
+        <div id="bulk-actions-toolbar" class="bulk-actions-toolbar" style="display: none;">
+          <div class="d-flex align-items-center gap-3">
+            <div class="form-check m-0">
+              <input class="form-check-input" type="checkbox" id="bulk-toolbar-toggle-all">
+            </div>
+            <span class="fw-bold"><span id="bulk-selected-count">0</span> orders selected</span>
+          </div>
+
           <div class="d-flex align-items-center flex-wrap gap-2">
-            <select id="admin-orders-filter" class="form-select form-control-custom py-2 px-3 small" style="width: auto;">
-              <option value="ALL">All Statuses</option>
-              <option value="Order Placed (COD)">Order Placed (COD)</option>
-              <option value="Payment Confirmed">Payment Confirmed</option>
-              <option value="Processing">Processing</option>
-              <option value="Shipped">Shipped</option>
-              <option value="Delivered">Delivered</option>
-              <option value="Cancelled">Cancelled</option>
-            </select>
-            <span class="badge bg-white border text-dark" id="admin-orders-count">0 Orders</span>
-            <button class="btn btn-x-outline btn-sm d-flex align-items-center gap-1" id="export-orders-csv-btn" title="Download Excel/CSV Spreadsheet">
-              <i class="bi bi-file-earmark-spreadsheet"></i> Export CSV
+            <div class="input-group input-group-sm" style="width: auto;">
+              <span class="input-group-text bg-secondary border-0 text-white">Status:</span>
+              <select id="bulk-status-select" class="form-select form-select-sm bg-dark text-white border-0">
+                <option value="">Change Status to...</option>
+                <option value="Processing">Processing</option>
+                <option value="Shipped">Shipped</option>
+                <option value="Delivered">Delivered</option>
+                <option value="Cancelled">Cancelled</option>
+              </select>
+              <button class="btn btn-light btn-sm fw-bold" id="apply-bulk-status-btn">Apply</button>
+            </div>
+
+            <button class="btn btn-outline-light btn-sm" id="bulk-export-btn" title="Export only selected orders">
+              <i class="bi bi-download me-1"></i> Export Selected
             </button>
-            <button class="btn btn-x-primary btn-sm d-flex align-items-center gap-1" id="open-sheets-modal-btn" data-bs-toggle="modal" data-bs-target="#sheetsModal" title="Configure Google Sheets Webhook Sync">
-              <i class="bi bi-file-earmark-text"></i> Google Sheets Sync
+
+            <button class="btn btn-danger btn-sm fw-bold d-flex align-items-center gap-1" id="bulk-delete-btn" title="Permanently delete selected orders">
+              <i class="bi bi-trash3-fill"></i> Delete Selected
             </button>
           </div>
         </div>
 
-        <!-- Orders Table -->
+        <!-- Orders Table Card -->
         <div class="admin-card">
           <div class="table-responsive">
-            <table class="table-custom-dark">
+            <table class="table-custom-dark mb-0">
               <thead>
                 <tr>
+                  <th style="width: 40px;">
+                    <input type="checkbox" class="form-check-input form-check-input-custom" id="select-all-orders" title="Select all visible orders">
+                  </th>
                   <th>Order ID</th>
                   <th>Customer</th>
-                  <th>Date</th>
+                  <th>Date &amp; Destination</th>
                   <th>Items</th>
                   <th>Total</th>
                   <th>Status</th>
+                  <th>Email Status</th>
                   <th>Delhivery Tracking / AWB</th>
-                  <th>Actions</th>
+                  <th style="min-width: 170px;">Actions</th>
                 </tr>
               </thead>
               <tbody id="admin-orders-table-body">
@@ -113,6 +260,105 @@
 
       </div>
     </main>
+  </div>
+
+  <!-- Delete Confirmation Modal (Single & Bulk) -->
+  <div class="modal fade" id="deleteOrderModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+      <div class="modal-content modal-content-custom">
+        <div class="modal-header border-danger border-opacity-25 bg-danger bg-opacity-10">
+          <h5 class="modal-title font-heading text-danger fw-bold d-flex align-items-center gap-2">
+            <i class="bi bi-exclamation-triangle-fill fs-4"></i> CONFIRM ORDER DELETION
+          </h5>
+          <button type="button" class="btn-close-custom" data-bs-dismiss="modal"><i class="bi bi-x-lg"></i></button>
+        </div>
+        <div class="modal-body p-4">
+          <p class="text-dark mb-3" id="delete-modal-message">
+            Are you sure you want to permanently delete this order?
+          </p>
+          <div class="p-3 bg-surface-custom rounded border border-secondary border-opacity-25 small mb-3" id="delete-modal-details">
+            <!-- Dynamic order details filled here -->
+          </div>
+          <div class="alert alert-warning border d-flex align-items-center gap-2 py-2 px-3 small mb-0">
+            <i class="bi bi-shield-exclamation text-dark fs-5"></i>
+            <span>This action permanently purges the order record from the Firestore database and cannot be undone.</span>
+          </div>
+        </div>
+        <div class="modal-footer border-secondary border-opacity-25">
+          <button type="button" class="btn btn-x-outline btn-sm" data-bs-dismiss="modal">Cancel</button>
+          <button type="button" class="btn btn-danger btn-sm fw-bold px-3" id="confirm-delete-order-btn">
+            <i class="bi bi-trash3-fill me-1"></i> Delete Permanently
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Printable Invoice / Packing Slip Modal -->
+  <div class="modal fade" id="invoiceModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+      <div class="modal-content modal-content-custom">
+        <div class="modal-header border-secondary border-opacity-25 no-print">
+          <h5 class="modal-title font-heading text-black fw-bold d-flex align-items-center gap-2">
+            <i class="bi bi-printer text-accent fs-4"></i> PACKING SLIP &amp; INVOICE
+          </h5>
+          <div class="d-flex align-items-center gap-2">
+            <button type="button" class="btn btn-x-primary btn-sm" id="trigger-print-btn">
+              <i class="bi bi-printer-fill me-1"></i> Print / Save PDF
+            </button>
+            <button type="button" class="btn-close-custom" data-bs-dismiss="modal"><i class="bi bi-x-lg"></i></button>
+          </div>
+        </div>
+        <div class="modal-body p-0" id="printable-invoice-wrapper">
+          <!-- Dynamic invoice template filled here -->
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Customer Directory Modal -->
+  <div class="modal fade" id="customerDirectoryModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-xl">
+      <div class="modal-content modal-content-custom">
+        <div class="modal-header border-secondary border-opacity-25">
+          <h5 class="modal-title font-heading text-black fw-bold d-flex align-items-center gap-2">
+            <i class="bi bi-people-fill text-accent fs-4"></i> CUSTOMER DIRECTORY &amp; CONCIERGE
+          </h5>
+          <button type="button" class="btn-close-custom" data-bs-dismiss="modal"><i class="bi bi-x-lg"></i></button>
+        </div>
+        <div class="modal-body p-4">
+          <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 mb-3">
+            <div class="input-group" style="max-width: 380px;">
+              <span class="input-group-text bg-white border text-dark"><i class="bi bi-search"></i></span>
+              <input type="text" id="customer-search-input" class="form-control form-control-custom" placeholder="Search customer by name, phone, or city...">
+            </div>
+            <span class="badge bg-white border text-dark" id="customer-directory-count">0 Unique Customers</span>
+          </div>
+
+          <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
+            <table class="table-custom-dark w-100">
+              <thead>
+                <tr>
+                  <th>Customer Name</th>
+                  <th>Phone / WhatsApp</th>
+                  <th>Email</th>
+                  <th>Location</th>
+                  <th>Total Orders</th>
+                  <th>Lifetime Spend</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="customer-directory-table-body">
+                <!-- Dynamically populated -->
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <div class="modal-footer border-secondary border-opacity-25">
+          <button type="button" class="btn btn-x-outline btn-sm" data-bs-dismiss="modal">Close</button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <!-- Delhivery Tracking / AWB Modal -->

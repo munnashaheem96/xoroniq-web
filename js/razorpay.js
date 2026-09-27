@@ -35,9 +35,9 @@ export function loadRazorpayScript() {
 
 /**
  * Open Razorpay Checkout Modal
- * @param {Object} options - { amount, orderId, customer: { name, email, phone }, onSuccess, onFailure }
+ * @param {Object} options - { amount, orderId, razorpayOrderId, customer: { name, email, phone }, onSuccess, onFailure }
  */
-export async function openRazorpayCheckout({ amount, orderId, customer, onSuccess, onFailure }) {
+export async function openRazorpayCheckout({ amount, orderId, razorpayOrderId, customer, onSuccess, onFailure }) {
   const isLoaded = await loadRazorpayScript();
 
   if (!isLoaded || !window.Razorpay) {
@@ -47,7 +47,7 @@ export async function openRazorpayCheckout({ amount, orderId, customer, onSucces
       const mockPaymentId = `pay_sim_${Date.now()}`;
       onSuccess({
         razorpay_payment_id: mockPaymentId,
-        razorpay_order_id: `order_sim_${Date.now()}`,
+        razorpay_order_id: razorpayOrderId || `order_sim_${Date.now()}`,
         razorpay_signature: 'simulated_signature',
       });
     }, 1200);
@@ -60,6 +60,7 @@ export async function openRazorpayCheckout({ amount, orderId, customer, onSucces
     currency: 'INR',
     name: CONFIG.STORE.NAME,
     description: `Order #${orderId} - Premium Automotive Detailing`,
+    ...(razorpayOrderId ? { order_id: razorpayOrderId } : {}),
     image: 'https://images.unsplash.com/photo-1617814076367-b759c7d7e738?auto=format&fit=crop&w=200&q=80',
     prefill: {
       name: customer.name || '',

@@ -7,7 +7,12 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "functions:dev": "node functions/dev-server.js",
+    "functions:test": "node functions/test-email.js",
+    "deploy:functions": "npx firebase-tools deploy --only functions",
+    "deploy:hosting": "npm run build && npx firebase-tools deploy --only hosting",
+    "deploy": "npm run build && npx firebase-tools deploy"
   },
   "dependencies": {
     "bootstrap": "^5.3.3",
