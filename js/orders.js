@@ -1080,7 +1080,7 @@ export async function initAdminOrdersPage() {
             ${(order.codFee || isCod) ? `
               <tr>
                 <td colspan="5" class="text-end fw-semibold">COD Handling Fee:</td>
-                <td class="text-end font-mono">${formatCurrency(order.codFee || 20)}</td>
+                <td class="text-end font-mono">${formatCurrency(order.codFee || 25)}</td>
               </tr>
             ` : ''}
             <tr class="table-active fs-5">
@@ -1477,7 +1477,7 @@ export async function initAdminOrdersPage() {
         ${(order.codFee || isCod) ? `
           <div class="d-flex justify-content-between text-silver small mb-1">
             <span>Cash on Delivery (COD) Extra Fee</span>
-            <span class="font-mono text-accent fw-bold">+${formatCurrency(order.codFee || 20)}</span>
+            <span class="font-mono text-accent fw-bold">+${formatCurrency(order.codFee || 25)}</span>
           </div>
         ` : ''}
       </div>

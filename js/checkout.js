@@ -52,23 +52,21 @@ export function initCheckoutPage() {
   const stateInput = document.getElementById('cust-state');
   const cityInput = document.getElementById('cust-city');
   const payRazorpayRadio = document.getElementById('payRazorpay');
+  const payCodRadio = document.getElementById('payCOD');
   const cardRazorpay = document.getElementById('card-pay-razorpay');
-  const codCardEl = document.getElementById('cod-contact-card');
+  const cardCod = document.getElementById('card-pay-cod');
+  const codNoticeEl = document.getElementById('checkout-cod-notice');
 
-  // If user navigated with ?payment=cod, highlight COD concierge card and advise them
+  // If user navigated with ?payment=cod, pre-select COD
   const urlParams = new URLSearchParams(window.location.search);
   const initialPaymentParam = urlParams.get('payment');
   if (initialPaymentParam === 'cod') {
-    setTimeout(() => {
-      if (codCardEl) {
-        codCardEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
-        codCardEl.classList.add('border-accent');
-      }
-      showToast('Automated COD is disabled to prevent fake orders. Please DM on Instagram or WhatsApp to order via COD.', 'info');
-    }, 500);
+    if (payCodRadio) payCodRadio.checked = true;
+    if (payRazorpayRadio) payRazorpayRadio.checked = false;
   }
 
   function getSelectedPaymentMethod() {
+    if (payCodRadio && payCodRadio.checked) return 'COD';
     return 'RAZORPAY';
   }
 
@@ -76,6 +74,7 @@ export function initCheckoutPage() {
     currentPincode = pincodeInput ? pincodeInput.value.trim() : '';
     const currentState = stateInput ? stateInput.value.trim() : '';
     const currentCity = cityInput ? cityInput.value.trim() : '';
+    const selectedPaymentMethod = getSelectedPaymentMethod();
 
     // If customer entered a Kerala PIN (67xxxx, 68xxxx, 69xxxx) and state is empty, auto-fill Kerala
     if (currentPincode.length >= 2 && stateInput && !currentState) {
@@ -85,7 +84,7 @@ export function initCheckoutPage() {
       }
     }
 
-    totals = getCartTotals(currentPincode, 'RAZORPAY', stateInput ? stateInput.value.trim() : '', currentCity);
+    totals = getCartTotals(currentPincode, selectedPaymentMethod, stateInput ? stateInput.value.trim() : '', currentCity);
 
     if (subtotalEl) subtotalEl.textContent = formatCurrency(totals.subtotal);
     
@@ -93,15 +92,52 @@ export function initCheckoutPage() {
       shippingEl.innerHTML = `<span class="text-dark fw-bold">${formatCurrency(totals.shipping)}</span>`;
     }
 
-    // Ensure COD fee row is hidden
-    if (codRow) {
-      codRow.style.display = 'none';
+    // Toggle COD fee row and notice based on payment method
+    if (selectedPaymentMethod === 'COD') {
+      if (cardRazorpay) {
+        cardRazorpay.classList.remove('border-accent', 'active');
+        cardRazorpay.classList.add('border-secondary', 'border-opacity-25');
+      }
+      if (cardCod) {
+        cardCod.classList.remove('border-secondary', 'border-opacity-25');
+        cardCod.classList.add('border-accent', 'active');
+      }
+      if (codNoticeEl) {
+        codNoticeEl.style.display = 'block';
+      }
+      if (codRow) {
+        codRow.classList.remove('d-none');
+        codRow.classList.add('d-flex');
+        codRow.style.setProperty('display', 'flex', 'important');
+      }
+      if (codFeeEl) codFeeEl.textContent = `+${formatCurrency(totals.codFee || 25)}`;
+    } else {
+      if (cardRazorpay) {
+        cardRazorpay.classList.remove('border-secondary', 'border-opacity-25');
+        cardRazorpay.classList.add('border-accent', 'active');
+      }
+      if (cardCod) {
+        cardCod.classList.remove('border-accent', 'active');
+        cardCod.classList.add('border-secondary', 'border-opacity-25');
+      }
+      if (codNoticeEl) {
+        codNoticeEl.style.display = 'none';
+      }
+      if (codRow) {
+        codRow.classList.remove('d-flex');
+        codRow.classList.add('d-none');
+        codRow.style.setProperty('display', 'none', 'important');
+      }
     }
 
     if (totalEl) totalEl.textContent = formatCurrency(totals.total);
 
     if (placeOrderBtn) {
-      placeOrderBtn.innerHTML = `<i class="bi bi-lock-fill me-2"></i> PAY & CONFIRM ORDER — ${formatCurrency(totals.total)}`;
+      if (selectedPaymentMethod === 'COD') {
+        placeOrderBtn.innerHTML = `<i class="bi bi-box-seam-fill me-2"></i> CONFIRM CASH ON DELIVERY ORDER — ${formatCurrency(totals.total)}`;
+      } else {
+        placeOrderBtn.innerHTML = `<i class="bi bi-lock-fill me-2"></i> PAY & CONFIRM ORDER — ${formatCurrency(totals.total)}`;
+      }
     }
 
     if (pincodeNoticeEl) {
@@ -124,11 +160,23 @@ export function initCheckoutPage() {
   }
 
   if (payRazorpayRadio) payRazorpayRadio.addEventListener('change', updateOrderTotalsDisplay);
+  if (payCodRadio) payCodRadio.addEventListener('change', updateOrderTotalsDisplay);
 
   if (cardRazorpay) {
     cardRazorpay.addEventListener('click', () => {
       if (payRazorpayRadio && !payRazorpayRadio.checked) {
         payRazorpayRadio.checked = true;
+        if (payCodRadio) payCodRadio.checked = false;
+        updateOrderTotalsDisplay();
+      }
+    });
+  }
+
+  if (cardCod) {
+    cardCod.addEventListener('click', () => {
+      if (payCodRadio && !payCodRadio.checked) {
+        payCodRadio.checked = true;
+        if (payRazorpayRadio) payRazorpayRadio.checked = false;
         updateOrderTotalsDisplay();
       }
     });
@@ -201,11 +249,103 @@ export function initCheckoutPage() {
         return;
       }
 
-      // Recalculate totals with entered pincode and state
-      totals = getCartTotals(pincode, 'RAZORPAY', state, city);
+      // Recalculate totals with entered pincode, state, and payment method
+      totals = getCartTotals(pincode, selectedPaymentMethod, state, city);
 
       const originalBtnHtml = placeOrderBtn.innerHTML;
       placeOrderBtn.disabled = true;
+
+      // ======================================================================
+      // CASH ON DELIVERY (COD) FLOW
+      // ======================================================================
+      if (selectedPaymentMethod === 'COD') {
+        placeOrderBtn.innerHTML = `
+          <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+          CONFIRMING CASH ON DELIVERY ORDER...
+        `;
+
+        const attribution = getUtmAttribution();
+        let orderId = null;
+
+        try {
+          // Attempt server-side atomic Order ID generation & email notifications
+          const createRes = await fetch(`${CONFIG.API_BASE_URL}/create-cod-order`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              customer: { name, email, phone: cleanPhone },
+              shippingAddress: { address, city, state, pincode, country: 'India' },
+              items: cart,
+              subtotal: totals.subtotal,
+              shipping: totals.shipping,
+              codFee: totals.codFee || 25,
+              discount: totals.discount || 0,
+              total: totals.total,
+              attribution: attribution || null,
+            }),
+          });
+
+          if (createRes.ok) {
+            const createData = await createRes.json();
+            orderId = createData.orderId;
+            console.log('Server created COD order:', orderId);
+          } else {
+            console.warn('Backend COD order creation status:', createRes.status);
+          }
+        } catch (apiErr) {
+          console.warn('Backend COD endpoint unreachable, using client fallback:', apiErr);
+        }
+
+        if (!orderId) {
+          orderId = generateOrderId();
+        }
+
+        const orderData = {
+          orderId: orderId,
+          customer: { name, email, phone: cleanPhone },
+          customerName: name,
+          customerEmail: email,
+          customerPhone: cleanPhone,
+          shippingAddress: { address, city, state, pincode, country: 'India' },
+          items: cart,
+          subtotal: totals.subtotal,
+          shipping: totals.shipping,
+          discount: totals.discount || 0,
+          codFee: totals.codFee || 25,
+          total: totals.total,
+          orderStatus: 'Order Placed (COD)',
+          paymentStatus: 'PENDING_COD',
+          payment: {
+            method: 'COD',
+            status: 'PENDING_COD',
+            codFee: totals.codFee || 25,
+            details: 'Cash on Delivery (+₹25 extra handling fee)'
+          },
+          attribution: attribution || null
+        };
+
+        try {
+          // Direct Firestore write backup
+          await createOrder(orderData);
+        } catch (err) {
+          console.warn('Client direct Firestore write note:', err);
+        }
+
+        try {
+          sendOrderToGoogleSheets(orderData).catch(err => {
+            console.warn('Google Sheets sync note:', err);
+          });
+          setStorage('xoroniq_last_order', orderData);
+          clearCart();
+          window.location.href = `success.html?orderId=${orderId}&payment=cod`;
+        } catch (err) {
+          console.error('Failed to complete COD order:', err);
+          setStorage('xoroniq_last_order', orderData);
+          clearCart();
+          window.location.href = `success.html?orderId=${orderId}&payment=cod`;
+        }
+        return;
+      }
 
       // ======================================================================
       // PREPAID ONLINE PAYMENT FLOW (RAZORPAY & SERVER ORDER SYSTEM)

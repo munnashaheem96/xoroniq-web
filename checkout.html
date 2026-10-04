@@ -119,7 +119,7 @@
               </h5>
 
               <!-- Razorpay Standard Option (Prepaid) -->
-              <div class="p-3 bg-surface-custom rounded border border-accent mb-3 d-flex align-items-center justify-content-between payment-method-card active shadow-sm" id="card-pay-razorpay">
+              <label for="payRazorpay" class="p-3 bg-surface-custom rounded border border-accent mb-3 d-flex align-items-center justify-content-between payment-method-card active shadow-sm" id="card-pay-razorpay" style="cursor: pointer;">
                 <div class="d-flex align-items-center gap-3">
                   <div class="form-check m-0">
                     <input class="form-check-input form-check-input-custom" type="radio" name="paymentMethod" id="payRazorpay" value="RAZORPAY" checked>
@@ -130,34 +130,34 @@
                   </div>
                 </div>
                 <span class="badge bg-success bg-opacity-10 text-success border border-success border-opacity-25 small">Fastest Dispatch</span>
-              </div>
+              </label>
 
-              <!-- COD Direct Notice & Contact Card -->
-              <div class="p-3 rounded border border-warning bg-warning bg-opacity-10" id="cod-contact-card">
-                <div class="d-flex align-items-start gap-3">
-                  <i class="bi bi-shield-exclamation text-dark fs-3 mt-1"></i>
-                  <div class="flex-grow-1">
-                    <div class="d-flex align-items-center justify-content-between flex-wrap gap-2 mb-1">
-                      <span class="font-heading fw-bold text-dark">WANT CASH ON DELIVERY (COD)?</span>
-                      <span class="badge bg-dark text-white small" style="font-size: 0.7rem;">MANUAL VERIFICATION REQUIRED</span>
+              <!-- Cash on Delivery Option (COD) -->
+              <label for="payCOD" class="p-3 bg-surface-custom rounded border border-secondary border-opacity-25 mb-3 d-flex align-items-center justify-content-between payment-method-card shadow-sm" id="card-pay-cod" style="cursor: pointer;">
+                <div class="d-flex align-items-center gap-3">
+                  <div class="form-check m-0">
+                    <input class="form-check-input form-check-input-custom" type="radio" name="paymentMethod" id="payCOD" value="COD">
+                  </div>
+                  <div>
+                    <div class="d-flex align-items-center gap-2">
+                      <span class="text-black fw-bold font-heading">CASH ON DELIVERY (COD)</span>
+                      <span class="badge bg-warning bg-opacity-25 text-dark border border-warning small fw-bold" style="font-size: 0.72rem;">+₹25 EXTRA</span>
                     </div>
-                    <p class="text-muted-custom small mb-3" style="line-height: 1.5;">
-                      Due to a high volume of fake orders, automated Cash on Delivery on the website is temporarily disabled. 
-                      To place a verified COD order, kindly contact our team directly via Instagram or WhatsApp:
-                    </p>
-                    <div class="d-flex flex-wrap gap-2">
-                      <a href="https://wa.me/919188510017?text=Hi%20XORONIQ%2C%20I%20would%20like%20to%20place%20a%20Cash%20on%20Delivery%20(COD)%20order" 
-                         target="_blank" 
-                         class="btn btn-sm btn-success d-inline-flex align-items-center gap-2 fw-semibold px-3 py-2 shadow-sm">
-                        <i class="bi bi-whatsapp fs-6"></i>
-                        <span>Order via WhatsApp (+91 9188510017)</span>
-                      </a>
-                      <a href="https://instagram.com/xoroniq" 
-                         target="_blank" 
-                         class="btn btn-sm btn-outline-dark d-inline-flex align-items-center gap-2 fw-semibold px-3 py-2 bg-white">
-                        <i class="bi bi-instagram fs-6 text-danger"></i>
-                        <span>DM on Instagram (@xoroniq)</span>
-                      </a>
+                    <div class="text-muted-custom small">Pay cash or UPI upon package arrival at your doorstep</div>
+                  </div>
+                </div>
+                <i class="bi bi-cash-stack text-accent fs-3"></i>
+              </label>
+
+              <!-- COD Information Alert Banner (Shown when COD selected) -->
+              <div id="checkout-cod-notice" class="p-3 bg-warning bg-opacity-10 border border-warning border-opacity-50 rounded mb-3 small" style="display: none;">
+                <div class="d-flex align-items-start gap-2">
+                  <i class="bi bi-info-circle-fill text-dark fs-5"></i>
+                  <div class="text-dark">
+                    <strong class="font-heading">CASH ON DELIVERY TERMS:</strong>
+                    <div class="small mt-1" style="line-height: 1.5;">
+                      An extra handling fee of <strong>₹25</strong> is applied to Cash on Delivery orders. 
+                      Please ensure your mobile number is active. Keep exact cash or UPI ready for the delivery partner upon arrival.
                     </div>
                   </div>
                 </div>
@@ -191,12 +191,12 @@
               <span class="font-mono text-accent fw-bold" id="checkout-shipping">₹0</span>
             </div>
 
-            <div class="d-flex justify-content-between mb-3 text-silver small" id="checkout-cod-row" style="display: none;">
+            <div class="d-none justify-content-between mb-3 text-silver small" id="checkout-cod-row">
               <span class="d-flex align-items-center gap-1">
                 <span>Cash on Delivery (COD) Fee</span>
                 <i class="bi bi-info-circle text-accent" title="Extra handling fee for Cash on Delivery"></i>
               </span>
-              <span class="font-mono text-accent fw-bold" id="checkout-cod-fee">+₹20</span>
+              <span class="font-mono text-accent fw-bold" id="checkout-cod-fee">+₹25</span>
             </div>
 
             <div class="d-flex justify-content-between pt-3 border-top border-secondary border-opacity-25 text-black font-heading fs-4 fw-bold mb-4">

@@ -190,6 +190,164 @@ async function createPendingOrder(db, {
 }
 
 /**
+ * Save and fulfill new Cash on Delivery (COD) Order in Firestore & Trigger Emails
+ * @param {admin.firestore.Firestore} db
+ * @param {Object} params
+ * @returns {Promise<Object>} Created Order Data
+ */
+async function createCodOrder(db, {
+  customer,
+  shippingAddress,
+  items,
+  discount = 0,
+  codFee = 25,
+  attribution = null,
+  orderId = null
+}) {
+  if (!items || !items.length) {
+    throw new Error('Order must contain at least one product item.');
+  }
+
+  let subtotal = 0;
+  const sanitizedItems = items.map(item => {
+    const price = Math.max(0, Number(item.price) || 0);
+    const qty = Math.max(1, parseInt(item.quantity, 10) || 1);
+    const itemDeliveryFee = (item.deliveryFee !== undefined && item.deliveryFee !== null && !isNaN(Number(item.deliveryFee)))
+      ? Number(item.deliveryFee)
+      : 80;
+    subtotal += price * qty;
+
+    return {
+      id: String(item.id || ''),
+      name: String(item.name || 'Automotive Formulation').trim(),
+      sku: String(item.sku || 'XOR-PRO').trim(),
+      price: price,
+      quantity: qty,
+      deliveryFee: itemDeliveryFee,
+      image: String(item.image || '')
+    };
+  });
+
+  const numericDiscount = Math.max(0, Number(discount) || 0);
+  const calculatedShipping = calculateServerShipping(subtotal, shippingAddress, items);
+  const numericCodFee = Math.max(0, Number(codFee) || 25);
+  const total = Math.max(0, subtotal + calculatedShipping + numericCodFee - numericDiscount);
+
+  // Generate unique human-readable order ID
+  const uniqueOrderId = orderId || await getNextOrderId(db);
+
+  const cleanCustomer = {
+    name: String(customer?.name || '').trim(),
+    email: String(customer?.email || '').trim().toLowerCase(),
+    phone: String(customer?.phone || '').replace(/\D/g, '')
+  };
+
+  const cleanAddress = {
+    address: String(shippingAddress?.address || '').trim(),
+    city: String(shippingAddress?.city || '').trim(),
+    state: String(shippingAddress?.state || '').trim(),
+    pincode: String(shippingAddress?.pincode || '').replace(/\D/g, ''),
+    country: String(shippingAddress?.country || 'India').trim()
+  };
+
+  const orderPayload = {
+    orderId: uniqueOrderId,
+    customer: cleanCustomer,
+    customerName: cleanCustomer.name,
+    customerEmail: cleanCustomer.email,
+    customerPhone: cleanCustomer.phone,
+    shippingAddress: cleanAddress,
+    items: sanitizedItems,
+    subtotal: subtotal,
+    shipping: calculatedShipping,
+    codFee: numericCodFee,
+    discount: numericDiscount,
+    total: total,
+    currency: 'INR',
+    paymentStatus: 'PENDING_COD',
+    orderStatus: 'Order Placed (COD)',
+    razorpayOrderId: '',
+    razorpayPaymentId: `cod_${Date.now()}`,
+    razorpaySignature: '',
+    payment: {
+      method: 'COD',
+      status: 'PENDING_COD',
+      codFee: numericCodFee,
+      details: 'Cash on Delivery (+₹25 extra handling fee)'
+    },
+    emailStatus: 'PENDING',
+    partnerEmailStatus: 'PENDING',
+    customerEmailStatus: 'PENDING',
+    emailSentAt: null,
+    emailError: null,
+    attribution: attribution || null,
+    createdAt: admin.firestore.FieldValue.serverTimestamp(),
+    updatedAt: admin.firestore.FieldValue.serverTimestamp()
+  };
+
+  try {
+    if (db && typeof db.collection === 'function') {
+      const docRef = db.collection('orders').doc(uniqueOrderId);
+      await docRef.set(orderPayload);
+      console.log(`[COD Order Created] Order #${uniqueOrderId} stored in Firestore.`);
+    }
+  } catch (err) {
+    console.warn('[COD ORDER FIRESTORE WRITE NOTE]:', err.message);
+  }
+
+  // Trigger emails (Partner Notification & Customer Confirmation)
+  let partnerSuccess = false;
+  let partnerError = null;
+  try {
+    console.log(`[Email Dispatch] Sending 3-partner notification for COD Order #${uniqueOrderId}`);
+    await sendPartnerOrderEmail(orderPayload);
+    partnerSuccess = true;
+  } catch (err) {
+    console.error(`[Email Dispatch Error] Failed to send partner COD email for Order #${uniqueOrderId}:`, err.message);
+    partnerError = err.message;
+  }
+
+  let customerSuccess = false;
+  let customerError = null;
+  if (cleanCustomer.email && cleanCustomer.email.includes('@')) {
+    try {
+      console.log(`[Email Dispatch] Sending customer confirmation to ${cleanCustomer.email} for COD Order #${uniqueOrderId}`);
+      await sendCustomerOrderEmail(orderPayload);
+      customerSuccess = true;
+    } catch (err) {
+      console.error(`[Email Dispatch Error] Failed to send customer COD email for Order #${uniqueOrderId}:`, err.message);
+      customerError = err.message;
+    }
+  }
+
+  // Update Firestore with email delivery status
+  try {
+    if (db && typeof db.collection === 'function') {
+      const emailUpdates = {
+        partnerEmailStatus: partnerSuccess ? 'SENT' : 'FAILED',
+        customerEmailStatus: customerSuccess ? 'SENT' : (cleanCustomer.email ? 'FAILED' : 'NO_EMAIL'),
+        updatedAt: admin.firestore.FieldValue.serverTimestamp()
+      };
+      if (partnerSuccess && customerSuccess) {
+        emailUpdates.emailStatus = 'SENT';
+        emailUpdates.emailSentAt = admin.firestore.FieldValue.serverTimestamp();
+      } else if (partnerSuccess || customerSuccess) {
+        emailUpdates.emailStatus = 'PARTIAL';
+        emailUpdates.emailError = partnerError || customerError || null;
+      } else {
+        emailUpdates.emailStatus = 'FAILED';
+        emailUpdates.emailError = partnerError || customerError || 'Email delivery failed';
+      }
+      await db.collection('orders').doc(uniqueOrderId).update(emailUpdates);
+    }
+  } catch (upErr) {
+    console.warn('[COD ORDER EMAIL STATUS UPDATE NOTE]:', upErr.message);
+  }
+
+  return { id: uniqueOrderId, ...orderPayload };
+}
+
+/**
  * Process Verified Payment Confirmation & Trigger Automated Notifications
  * IDEMPOTENT: Prevents duplicate emails if called repeatedly by webhook retries.
  * @param {Object} params
@@ -411,6 +569,7 @@ module.exports = {
   getNextOrderId,
   calculateServerShipping,
   createPendingOrder,
+  createCodOrder,
   processSuccessfulOrderPayment,
   resendOrderEmails
 };

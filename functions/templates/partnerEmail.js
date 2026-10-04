@@ -39,6 +39,8 @@ function getPartnerEmailTemplate(order, frontendUrl = 'https://xoroniq.store') {
   const subtotal = Number(order.subtotal) || 0;
   const shipping = Number(order.shipping) || 0;
   const discount = Number(order.discount) || 0;
+  const isCod = order.payment?.method === 'COD' || order.orderStatus === 'Order Placed (COD)';
+  const codFee = Number(order.codFee || order.payment?.codFee || (isCod ? 25 : 0));
   const total = Number(order.total) || 0;
 
   const rzpOrderId = escapeHtml(order.razorpayOrderId || order.payment?.razorpayOrderId || 'N/A');
@@ -47,7 +49,7 @@ function getPartnerEmailTemplate(order, frontendUrl = 'https://xoroniq.store') {
   const cleanPhone = String(order.customer?.phone || '').replace(/\D/g, '');
   const waPhone = cleanPhone.length === 10 ? `91${cleanPhone}` : cleanPhone;
 
-  const subject = `🛒 New XORONIQ Order #${orderId} — ${formatPrice(total)}`;
+  const subject = `🛒 New XORONIQ Order #${orderId}${isCod ? ' [COD]' : ''} — ${formatPrice(total)}`;
   const adminOrderUrl = `${frontendUrl}/admin/orders.html?search=${encodeURIComponent(order.orderId || '')}`;
 
   // Product table rows HTML
@@ -121,8 +123,8 @@ function getPartnerEmailTemplate(order, frontendUrl = 'https://xoroniq.store') {
                     </div>
                   </td>
                   <td align="right" valign="middle">
-                    <span style="display: inline-block; background-color: #166534; color: #4ade80; font-size: 11px; font-weight: 800; padding: 5px 12px; border-radius: 20px; border: 1px solid #22c55e;">
-                      PAID
+                    <span style="display: inline-block; background-color: ${isCod ? '#78350f' : '#166534'}; color: ${isCod ? '#fbbf24' : '#4ade80'}; font-size: 11px; font-weight: 800; padding: 5px 12px; border-radius: 20px; border: 1px solid ${isCod ? '#d97706' : '#22c55e'};">
+                      ${isCod ? 'CASH ON DELIVERY' : 'PAID'}
                     </span>
                   </td>
                 </tr>
@@ -203,6 +205,12 @@ function getPartnerEmailTemplate(order, frontendUrl = 'https://xoroniq.store') {
                     <td colspan="3" style="padding: 4px 14px; text-align: right; font-size: 13px; color: #94a3b8;">Total Delivery Cash:</td>
                     <td style="padding: 4px 14px; text-align: right; font-size: 13px; font-family: monospace; color: #f8fafc;">${shipping === 0 ? '<span style="color:#4ade80;">FREE</span>' : formatPrice(shipping)}</td>
                   </tr>
+                  ${(isCod || codFee > 0) ? `
+                  <tr>
+                    <td colspan="3" style="padding: 4px 14px; text-align: right; font-size: 13px; color: #f59e0b;">Cash on Delivery (COD) Extra Fee:</td>
+                    <td style="padding: 4px 14px; text-align: right; font-size: 13px; font-family: monospace; color: #f59e0b;">+${formatPrice(codFee)}</td>
+                  </tr>
+                  ` : ''}
                   ${discount > 0 ? `
                   <tr>
                     <td colspan="3" style="padding: 4px 14px; text-align: right; font-size: 13px; color: #4ade80;">Discount:</td>
@@ -210,8 +218,8 @@ function getPartnerEmailTemplate(order, frontendUrl = 'https://xoroniq.store') {
                   </tr>
                   ` : ''}
                   <tr style="border-top: 1px solid #1e293b;">
-                    <td colspan="3" style="padding: 12px 14px; text-align: right; font-size: 14px; font-weight: 800; color: #ffffff;">TOTAL AMOUNT PAID:</td>
-                    <td style="padding: 12px 14px; text-align: right; font-size: 17px; font-weight: 900; font-family: monospace; color: #4ade80;">${formatPrice(total)}</td>
+                    <td colspan="3" style="padding: 12px 14px; text-align: right; font-size: 14px; font-weight: 800; color: #ffffff;">${isCod ? 'TOTAL TO COLLECT ON DELIVERY:' : 'TOTAL AMOUNT PAID:'}</td>
+                    <td style="padding: 12px 14px; text-align: right; font-size: 17px; font-weight: 900; font-family: monospace; color: ${isCod ? '#fbbf24' : '#4ade80'};">${formatPrice(total)}</td>
                   </tr>
                 </tfoot>
               </table>
@@ -228,11 +236,18 @@ function getPartnerEmailTemplate(order, frontendUrl = 'https://xoroniq.store') {
                       💳 PAYMENT VERIFICATION
                     </div>
                     <div style="font-size: 12px; color: #cbd5e1; line-height: 1.6;">
-                      • <strong>Payment Status:</strong> <span style="color: #4ade80; font-weight: bold;">PAID</span>
+                      • <strong>Payment Status:</strong> <span style="color: ${isCod ? '#fbbf24' : '#4ade80'}; font-weight: bold;">${isCod ? 'PENDING CASH/UPI COLLECTION ON DELIVERY' : 'PAID'}</span>
+                      <br>
+                      • <strong>Payment Method:</strong> <span style="font-family: monospace; color: #f8fafc;">${isCod ? 'Cash on Delivery (COD)' : 'Online Prepaid (Razorpay)'}</span>
+                      ${isCod ? `
+                      <br>
+                      • <strong>Amount to Collect:</strong> <span style="font-family: monospace; color: #fbbf24; font-weight: bold;">${formatPrice(total)}</span>
+                      ` : `
                       <br>
                       • <strong>Razorpay Order ID:</strong> <span style="font-family: monospace; color: #f8fafc;">${rzpOrderId}</span>
                       <br>
                       • <strong>Razorpay Payment ID:</strong> <span style="font-family: monospace; color: #f8fafc;">${rzpPaymentId}</span>
+                      `}
                     </div>
                   </td>
                 </tr>

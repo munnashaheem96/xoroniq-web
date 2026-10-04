@@ -16,7 +16,7 @@ if (!admin.apps.length) {
 const db = admin.firestore();
 
 const { createRazorpayOrder, verifyPaymentSignature, verifyWebhookSignature } = require('./razorpayService');
-const { createPendingOrder, processSuccessfulOrderPayment, resendOrderEmails, getNextOrderId, calculateServerShipping } = require('./orderService');
+const { createPendingOrder, createCodOrder, processSuccessfulOrderPayment, resendOrderEmails, getNextOrderId, calculateServerShipping } = require('./orderService');
 
 // ------------------------------------------------------------------------------
 // EXPRESS APP CONFIGURATION
@@ -130,6 +130,49 @@ app.post('/api/create-order', async (req, res) => {
   } catch (err) {
     console.error('[Create Order Route Error]:', err);
     return res.status(500).json({ error: err.message || 'Server error creating order.' });
+  }
+});
+
+// ------------------------------------------------------------------------------
+// 2b. CREATE CASH ON DELIVERY (COD) ORDER & TRIGGER AUTOMATED NOTIFICATIONS
+// Endpoint: POST /api/create-cod-order
+// ------------------------------------------------------------------------------
+app.post('/api/create-cod-order', async (req, res) => {
+  try {
+    const { customer, shippingAddress, items, discount, attribution, codFee } = req.body;
+
+    if (!items || !items.length) {
+      return res.status(400).json({ error: 'Order items are required.' });
+    }
+    if (!customer?.name || !customer?.email || !customer?.phone) {
+      return res.status(400).json({ error: 'Customer name, email, and phone are required.' });
+    }
+    if (!shippingAddress?.address || !shippingAddress?.city || !shippingAddress?.pincode) {
+      return res.status(400).json({ error: 'Complete shipping address is required.' });
+    }
+
+    const codOrder = await createCodOrder(db, {
+      customer,
+      shippingAddress,
+      items,
+      discount,
+      codFee: codFee || 25,
+      attribution
+    });
+
+    console.log(`[COD Order Created] Order #${codOrder.orderId} placed successfully. Total: ₹${codOrder.total}`);
+
+    return res.status(200).json({
+      success: true,
+      orderId: codOrder.orderId,
+      total: codOrder.total,
+      currency: 'INR',
+      paymentMethod: 'COD',
+      status: codOrder.orderStatus
+    });
+  } catch (err) {
+    console.error('[Create COD Order Route Error]:', err);
+    return res.status(500).json({ error: err.message || 'Server error creating COD order.' });
   }
 });
 

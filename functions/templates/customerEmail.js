@@ -45,10 +45,14 @@ function getCustomerEmailTemplate(order) {
   const subtotal = Number(order.subtotal) || 0;
   const shipping = Number(order.shipping) || 0;
   const discount = Number(order.discount) || 0;
+  const isCod = order.payment?.method === 'COD' || order.orderStatus === 'Order Placed (COD)';
+  const codFee = Number(order.codFee || order.payment?.codFee || (isCod ? 25 : 0));
   const total = Number(order.total) || 0;
-  const paymentId = escapeHtml(order.razorpayPaymentId || order.payment?.razorpayPaymentId || 'Verified via Razorpay');
+  const paymentId = escapeHtml(order.razorpayPaymentId || order.payment?.razorpayPaymentId || (isCod ? 'Cash on Delivery (Pending)' : 'Verified via Razorpay'));
 
-  const subject = `Your XORONIQ Order #${orderId} is Confirmed`;
+  const subject = isCod 
+    ? `Your XORONIQ Order #${orderId} is Confirmed [Cash on Delivery]`
+    : `Your XORONIQ Order #${orderId} is Confirmed`;
 
   // HTML Product Rows
   const itemsHtml = items.map((item, idx) => {
@@ -124,6 +128,25 @@ function getCustomerEmailTemplate(order) {
           <!-- Order Confirmed Hero Badge -->
           <tr>
             <td style="padding: 32px 36px 20px 36px;">
+              ${isCod ? `
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background: rgba(245, 158, 11, 0.08); border: 1px solid rgba(245, 158, 11, 0.3); border-radius: 8px; padding: 18px 20px;">
+                <tr>
+                  <td width="42" valign="middle" style="padding-right: 14px;">
+                    <div style="width: 38px; height: 38px; border-radius: 50%; background-color: #b45309; text-align: center; line-height: 38px; color: #ffffff; font-size: 18px; font-weight: bold;">
+                      📦
+                    </div>
+                  </td>
+                  <td valign="middle">
+                    <div style="font-size: 16px; font-weight: 800; color: #fbbf24; text-transform: uppercase; letter-spacing: 0.05em;">
+                      Order Placed — Cash on Delivery
+                    </div>
+                    <div style="font-size: 13px; color: #cbd5e1; margin-top: 2px;">
+                      Please keep exact cash or UPI ready for the courier partner upon parcel delivery.
+                    </div>
+                  </td>
+                </tr>
+              </table>
+              ` : `
               <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background: rgba(34, 197, 94, 0.08); border: 1px solid rgba(34, 197, 94, 0.3); border-radius: 8px; padding: 18px 20px;">
                 <tr>
                   <td width="42" valign="middle" style="padding-right: 14px;">
@@ -141,6 +164,7 @@ function getCustomerEmailTemplate(order) {
                   </td>
                 </tr>
               </table>
+              `}
             </td>
           </tr>
 
@@ -149,7 +173,9 @@ function getCustomerEmailTemplate(order) {
             <td style="padding: 0 36px 20px 36px; font-size: 14px; line-height: 1.6; color: #cbd5e1;">
               Hello <strong style="color: #ffffff;">${customerName}</strong>,
               <br><br>
-              Thank you for trusting <strong>XORONIQ Car Care</strong>. We have received your order and our fulfillment lab has initiated the precision sealing and packing process. Your package will be dispatched via <strong>Delhivery Express</strong>.
+              ${isCod 
+                ? `Thank you for choosing <strong>XORONIQ Car Care</strong>. We have received your Cash on Delivery order and our fulfillment lab has initiated the precision sealing and packing process. Please keep <strong>${formatPrice(total)}</strong> ready to pay the courier agent via Cash or UPI upon delivery.`
+                : `Thank you for trusting <strong>XORONIQ Car Care</strong>. We have received your order and our fulfillment lab has initiated the precision sealing and packing process. Your package will be dispatched via <strong>Delhivery Express</strong>.`}
             </td>
           </tr>
 
@@ -170,7 +196,7 @@ function getCustomerEmailTemplate(order) {
                 <tr>
                   <td width="50%" style="padding: 10px 12px 6px 12px; vertical-align: top;">
                     <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: #94a3b8; font-weight: 600;">PAYMENT STATUS</div>
-                    <div style="font-size: 13px; font-weight: 700; color: #4ade80; margin-top: 2px;">PAID (ONLINE PREPAID)</div>
+                    <div style="font-size: 13px; font-weight: 700; color: ${isCod ? '#fbbf24' : '#4ade80'}; margin-top: 2px;">${isCod ? 'DUE ON DELIVERY (COD)' : 'PAID (ONLINE PREPAID)'}</div>
                   </td>
                   <td width="50%" style="padding: 10px 12px 6px 12px; vertical-align: top;">
                     <div style="font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em; color: #94a3b8; font-weight: 600;">TRANSACTION REF</div>
@@ -208,6 +234,12 @@ function getCustomerEmailTemplate(order) {
                     <td colspan="3" style="padding: 4px 16px; text-align: right; font-size: 13px; color: #94a3b8;">Delivery Cash (Delhivery Express):</td>
                     <td style="padding: 4px 16px; text-align: right; font-size: 13px; font-family: monospace; color: #f8fafc;">${shipping === 0 ? '<span style="color:#4ade80; font-weight:bold;">FREE</span>' : formatPrice(shipping)}</td>
                   </tr>
+                  ${(isCod || codFee > 0) ? `
+                  <tr>
+                    <td colspan="3" style="padding: 4px 16px; text-align: right; font-size: 13px; color: #f59e0b;">Cash on Delivery (COD) Fee:</td>
+                    <td style="padding: 4px 16px; text-align: right; font-size: 13px; font-family: monospace; color: #f59e0b;">+${formatPrice(codFee)}</td>
+                  </tr>
+                  ` : ''}
                   ${discount > 0 ? `
                   <tr>
                     <td colspan="3" style="padding: 4px 16px; text-align: right; font-size: 13px; color: #4ade80;">Discount Applied:</td>
@@ -215,7 +247,7 @@ function getCustomerEmailTemplate(order) {
                   </tr>
                   ` : ''}
                   <tr style="border-top: 1px solid #1e293b;">
-                    <td colspan="3" style="padding: 14px 16px; text-align: right; font-size: 15px; font-weight: 800; color: #ffffff;">GRAND TOTAL:</td>
+                    <td colspan="3" style="padding: 14px 16px; text-align: right; font-size: 15px; font-weight: 800; color: #ffffff;">${isCod ? 'TOTAL PAYABLE ON DELIVERY:' : 'GRAND TOTAL:'}</td>
                     <td style="padding: 14px 16px; text-align: right; font-size: 18px; font-weight: 900; font-family: monospace; color: #38bdf8;">${formatPrice(total)}</td>
                   </tr>
                 </tfoot>

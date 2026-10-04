@@ -79,7 +79,7 @@ export function formatOrderForSheets(orderData) {
     itemsCount: totalItemsCount,
     subtotal: Number(orderData.subtotal) || 0,
     shipping: Number(orderData.shipping) || 0,
-    codFee: Number(orderData.codFee || (orderData.payment?.method === 'COD' ? 20 : 0)),
+    codFee: Number(orderData.codFee || (orderData.payment?.method === 'COD' ? 25 : 0)),
     total: Number(orderData.total) || 0,
     paymentMethod: payment.method === 'COD' ? 'CASH ON DELIVERY' : (payment.method || 'RAZORPAY'),
     paymentId: payment.razorpayPaymentId || payment.paymentId || (payment.method === 'COD' ? `COD (Pay ₹${orderData.total})` : ''),

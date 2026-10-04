@@ -451,14 +451,20 @@ export async function createOrder(orderData) {
       items: orderData.items || [],
       subtotal: Number(orderData.subtotal) || 0,
       shipping: Number(orderData.shipping) || 0,
+      discount: Number(orderData.discount) || 0,
+      codFee: Number(orderData.codFee || (orderData.payment?.method === 'COD' ? 25 : 0)),
       total: Number(orderData.total) || 0,
       payment: {
-        method: orderData.payment.method || 'RAZORPAY',
-        razorpayPaymentId: orderData.payment.razorpayPaymentId || '',
-        razorpayOrderId: orderData.payment.razorpayOrderId || '',
-        status: orderData.payment.status || 'PAID'
+        method: orderData.payment?.method || 'RAZORPAY',
+        razorpayPaymentId: orderData.payment?.razorpayPaymentId || '',
+        razorpayOrderId: orderData.payment?.razorpayOrderId || '',
+        status: orderData.payment?.status || (orderData.payment?.method === 'COD' ? 'PENDING_COD' : 'PAID'),
+        codFee: Number(orderData.codFee || (orderData.payment?.method === 'COD' ? 25 : 0)),
+        details: orderData.payment?.details || ''
       },
-      orderStatus: 'Payment Confirmed', // "Payment Confirmed", "Processing", "Shipped", "Delivered", "Cancelled"
+      paymentStatus: orderData.paymentStatus || (orderData.payment?.method === 'COD' ? 'PENDING_COD' : 'PAID'),
+      orderStatus: orderData.orderStatus || (orderData.payment?.method === 'COD' ? 'Order Placed (COD)' : 'Payment Confirmed'),
+      attribution: orderData.attribution || null,
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp()
     };

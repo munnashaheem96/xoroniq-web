@@ -59,10 +59,10 @@ export function getCartTotals(pincode = null, paymentMethod = 'RAZORPAY', state 
     }, 0);
   }
 
-  // Cash on Delivery extra ₹20 fee
+  // Cash on Delivery extra ₹25 fee
   const isCod = (paymentMethod === 'COD' || paymentMethod === 'CASH_ON_DELIVERY');
   if (isCod && subtotal > 0) {
-    codFee = CONFIG.STORE.COD_FEE || 20;
+    codFee = CONFIG.STORE.COD_FEE || 25;
   }
 
   const total = subtotal + shipping + codFee;
