@@ -265,14 +265,12 @@
           <!-- Guarantees & Payment Options -->
           <div class="row g-3 pt-3 border-top border-secondary border-opacity-25 text-silver small">
             <div class="col-sm-6 d-flex align-items-center gap-2">
-              <i class="bi bi-truck text-accent fs-5"></i>
-              <span id="product-detail-delivery-info">Kerala Delivery: ₹60 (Rest of India: ₹80, Free > ₹2,500)</span>
+              <i class="bi bi-arrow-repeat text-accent fs-5"></i>
+              <span class="text-black fw-semibold">5 Days Return &amp; Replacement Policy</span>
             </div>
             <div class="col-sm-6 d-flex align-items-center gap-2">
-              <a href="https://wa.me/919188510017?text=Hi%20XORONIQ%2C%20I%20want%20to%20order%20via%20Cash%20on%20Delivery%20(COD)" target="_blank" class="text-decoration-none text-silver d-flex align-items-center gap-2">
-                <i class="bi bi-whatsapp text-success fs-5"></i>
-                <span>For COD: DM on WhatsApp / Instagram</span>
-              </a>
+              <i class="bi bi-truck text-accent fs-5"></i>
+              <span id="product-detail-delivery-info">Kerala Delivery: ₹60 (Rest of India: ₹80, Free > ₹2,500)</span>
             </div>
             <div class="col-sm-6 d-flex align-items-center gap-2">
               <i class="bi bi-shield-check text-accent fs-5"></i>
@@ -281,6 +279,12 @@
             <div class="col-sm-6 d-flex align-items-center gap-2">
               <i class="bi bi-lightning-charge text-accent fs-5"></i>
               <span>Express Dispatch in 24-48 Hours</span>
+            </div>
+            <div class="col-12 d-flex align-items-center gap-2">
+              <a href="https://wa.me/919188510017?text=Hi%20XORONIQ%2C%20I%20want%20to%20order%20via%20Cash%20on%20Delivery%20(COD)" target="_blank" class="text-decoration-none text-silver d-flex align-items-center gap-2">
+                <i class="bi bi-whatsapp text-success fs-5"></i>
+                <span>For COD: DM on WhatsApp / Instagram</span>
+              </a>
             </div>
           </div>
 
@@ -302,6 +306,9 @@
           </li>
           <li class="nav-item">
             <button class="nav-link" id="directions-tab" data-bs-toggle="tab" data-bs-target="#directions-tab-pane" type="button" role="tab">HOW TO APPLY</button>
+          </li>
+          <li class="nav-item">
+            <button class="nav-link" id="returns-tab" data-bs-toggle="tab" data-bs-target="#returns-tab-pane" type="button" role="tab">RETURNS &amp; REPLACEMENT</button>
           </li>
         </ul>
 
@@ -390,6 +397,53 @@
               <li><strong>Interior Finish:</strong> Spray interior cleaner onto towel and gently wipe dash, console, and leather.</li>
             </ol>
           </div>
+
+          <!-- Returns & Replacement Policy Tab -->
+          <div class="tab-pane fade text-silver" id="returns-tab-pane" role="tabpanel">
+            <div class="p-4 bg-surface-custom rounded border border-secondary border-opacity-25" style="max-width: 900px;">
+              <div class="d-flex align-items-center gap-2 mb-3">
+                <i class="bi bi-arrow-repeat text-accent fs-4"></i>
+                <h5 class="font-heading text-black fw-bold mb-0">5 DAYS RETURN &amp; REPLACEMENT POLICY</h5>
+              </div>
+              <p class="mb-3 text-silver">
+                At XORONIQ, we take immense pride in our lab-engineered detailing formulations and equipment. We want you to purchase with complete peace of mind. Every purchase comes with our official <strong>5-Day Return &amp; Replacement Guarantee</strong>.
+              </p>
+              <div class="row g-3 mb-4">
+                <div class="col-md-6">
+                  <div class="p-3 bg-white-custom rounded border border-secondary border-opacity-10 h-100">
+                    <div class="font-heading fw-bold text-black small mb-1"><i class="bi bi-shield-check text-accent me-1"></i> What Is Covered?</div>
+                    <ul class="small text-silver ps-3 mb-0">
+                      <li>Items damaged during courier transit or rough handling.</li>
+                      <li>Defective sprayer heads, broken nozzles, or cracked caps.</li>
+                      <li>Factory seal leaks or container leakage on arrival.</li>
+                      <li>Incorrect items or missing kit components received.</li>
+                    </ul>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="p-3 bg-white-custom rounded border border-secondary border-opacity-10 h-100">
+                    <div class="font-heading fw-bold text-black small mb-1"><i class="bi bi-clock-history text-accent me-1"></i> Easy 3-Step Process</div>
+                    <ol class="small text-silver ps-3 mb-0">
+                      <li>Notify us within <strong>5 days</strong> of product delivery.</li>
+                      <li>Share an unboxing picture/short video showing the defect.</li>
+                      <li>Receive an immediate free replacement dispatch or refund.</li>
+                    </ol>
+                  </div>
+                </div>
+              </div>
+              <div class="d-flex flex-wrap align-items-center justify-content-between gap-3 pt-3 border-top border-secondary border-opacity-25">
+                <span class="small text-muted-custom">Concierge Desk Helpline: 9633962953, 9544677531</span>
+                <div class="d-flex gap-2">
+                  <a href="https://wa.me/919633962953?text=Hi%20XORONIQ%2C%20I%20need%20assistance%20with%20a%205-Day%20Return%20or%20Replacement" target="_blank" class="btn btn-sm btn-x-outline-accent">
+                    <i class="bi bi-whatsapp me-1"></i> WhatsApp Support
+                  </a>
+                  <a href="mailto:xoroniq@gmail.com?subject=Return%20%2F%20Replacement%20Request" class="btn btn-sm btn-x-outline">
+                    <i class="bi bi-envelope me-1"></i> Email Support
+                  </a>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
 
@@ -467,7 +521,7 @@
         <div class="d-flex justify-content-between mb-4 text-black font-heading fs-5 fw-bold"><span>Total</span><span class="text-accent" id="cart-drawer-total">₹0</span></div>
         <a href="checkout.html" class="btn btn-x-primary w-100 py-3" id="cart-drawer-checkout-btn">PROCEED TO CHECKOUT <i class="bi bi-arrow-right ms-2"></i></a>
         <div class="text-center text-muted-custom mt-2" style="font-size: 0.72rem;">
-          <i class="bi bi-shield-check text-accent me-1"></i> Online Prepaid (Fastest Dispatch) • For COD WhatsApp: +919188510017
+          <i class="bi bi-arrow-repeat text-accent me-1"></i> 5 Days Return &amp; Replacement • Express Dispatch • For COD WhatsApp: +919188510017
         </div>
       </div>
     </div>
