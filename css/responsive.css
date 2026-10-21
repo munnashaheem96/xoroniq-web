@@ -51,14 +51,15 @@
     padding: 0.5rem 0.75rem;
     border-radius: 10px;
     background: #ffffff;
+    color: var(--x-text-main) !important;
+  }
+
+  .navbar-toggler i {
+    color: var(--x-text-main) !important;
   }
 
   .navbar-toggler:focus {
     box-shadow: 0 0 0 3px rgba(2, 132, 199, 0.25) !important;
-  }
-
-  .navbar-toggler-icon {
-    filter: invert(0.8);
   }
 
   .navbar-collapse {

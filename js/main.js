@@ -5,6 +5,11 @@
 import * as bootstrap from 'bootstrap';
 window.bootstrap = bootstrap;
 
+// Import Design System & Animations for Vite Bundler & HMR
+import '../css/style.css';
+import '../css/animations.css';
+import '../css/responsive.css';
+
 import { 
   initPreloader, 
   initCustomCursor, 
